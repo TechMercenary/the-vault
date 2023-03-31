@@ -87,24 +87,23 @@ class CustomTable(tk.Frame):
         """
         
         # Add the column to the table
-        self._col_config[column] = {}
-        self._col_config[column]['dtype'] = dtype
-        self._col_config[column]['is_sorted_asc'] = is_sorted_asc
-
-        # Set the column config        
-        self._col_config[column]['column_config'] = {
-            'anchor': anchor,
-            'minwidth': minwidth,
-            'width': width,
-            'stretch': stretch,
+        
+        self._col_config[column] = {
+            'dtype': dtype,
+            'is_sorted_asc': is_sorted_asc,
+            'column_config': {
+                'anchor': anchor,
+                'minwidth': minwidth,
+                'width': width,
+                'stretch': stretch,
+            },
+            'heading_config': {
+                'text': text or column.title(),
+                'command': lambda: self._sort_table(column=column),
+            }
         }
         
-        # Set the heading config
-        self._col_config[column]['heading_config'] = {
-            'text': text if text else column.title(),
-            'command': lambda: self._sort_table(column=column),
-        }
-    
+
     def _sort_table(self, column):
         """Sort the table by the given column."""
         
@@ -116,20 +115,18 @@ class CustomTable(tk.Frame):
 
         # Determine if the sort is reversed
         sort_descending = bool(self._col_config[column]['is_sorted_asc'])
-        
+
         # Reset sort for all columns except the current one
         for col in self._col_config.keys():
             if col != column:
                 self._col_config[col]['is_sorted_asc'] = None
             else:
                 self._col_config[column]['is_sorted_asc'] = not sort_descending
-        
+
         # Sort the data
         def get_sort_key(item, dtype: str | int | float) -> str | int | float:
             value, _ = item
-            if isinstance(dtype, str):
-                return dtype(value).lower()
-            return dtype(value)
+            return dtype(value).lower() if isinstance(dtype, str) else dtype(value)
 
         dtype = self._col_config[column]['dtype']
         items.sort(reverse=sort_descending, key=partial(get_sort_key, dtype=dtype))
@@ -166,15 +163,15 @@ class CustomTable(tk.Frame):
         """Update the table data."""
 
         # Update the data
-        self._data = data if data else self._data
-        
+        self._data = data or self._data
+
         self._configure_columns()
-            
+
         self.delete_all()
 
         # Insert data based on the column configuration
         for item in self._data:
-            values = tuple([item[column] for column in self.get_columns()])
+            values = tuple(item[column] for column in self.get_columns())
             self._table.insert('', 'end', values=values)
 
     def get_items_data(self, selected_only: bool = False):
@@ -185,12 +182,12 @@ class CustomTable(tk.Frame):
         for item_id in self._table.selection() if selected_only else self._table.get_children():
             # get the item's data as a tuple
             item_values = self._table.item(item_id)['values']
-            
+
             # Map tuple's values with the column names
-            item_data = {}
-            for index in range(len(columns)):
-                item_data[columns[index]] = item_values[index]
-                
+            item_data = {
+                columns[index]: item_values[index] for index in range(len(columns))
+            }
+            
             # Add the items's data to the list
             data.append(item_data)
 

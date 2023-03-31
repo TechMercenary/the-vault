@@ -97,16 +97,15 @@ class DB:
                 query = query.filter(Currency.id.in_(ids))
             currencies = query.order_by(func.lower(Currency.code)).all()
 
-        items = []
-        for currency in currencies:
-            items.append({
+        return [
+            {
                 'id': currency.id,
                 'code': currency.code,
-                'description': currency.description
-            })
-
-        return items
-
+                'description': currency.description,
+            }
+            for currency in currencies
+        ]
+    
 
     @classmethod
     @error_handler
