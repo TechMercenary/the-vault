@@ -10,3 +10,20 @@ else:
     logger.setLevel(logging.INFO)
 
 SQLALQUEMY_ECHO = os.environ.get('SQLALQUEMY_ECHO', 'False') == 'True'
+
+
+
+LANG = {
+    'en': {
+        'menu': {
+            'file': "File",
+            'edit': "Edit",
+            'actions': "Actions",
+            'tables': "Tables",
+            'reports': "Reports",
+            'investments': "Investments",
+            'tools': "Tools",
+            'about': "About",
+        }
+    }
+}

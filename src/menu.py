@@ -3,22 +3,23 @@ from views.about import AboutDialog
 from views.currencies import CurrencyListView
 from views.chart_of_accounts import ChartOfAccountsView
 from functools import partial
+from config import LANG
 import tkinter as tk
 
 
 class AppMenu(tk.Menu):
-    def __init__(self, parent: tk.Tk) -> None:
+    def __init__(self, parent: tk.Tk, lang: str = 'en') -> None:
         super().__init__(parent)
         self.parent = parent
        
-        self.add_cascade(label="File", menu=self.get_file_menu())
-        self.add_cascade(label="Edit", menu=self.get_edit_menu())
-        self.add_cascade(label="Actions", menu=self.get_actions_menu())
-        self.add_cascade(label="Tables", menu=self.get_tables_menu())
-        self.add_cascade(label="Reports", menu=self.get_reports_menu())
-        self.add_cascade(label="Investments", menu=self.get_investments_menu())
-        self.add_cascade(label="Tools", menu=self.get_tools_menu())
-        self.add_command(label="About", command=partial(AboutDialog, parent=self.parent))
+        self.add_cascade(label=LANG[lang]['menu']['file'], menu=self.get_file_menu())
+        self.add_cascade(label=LANG[lang]['menu']['edit'], menu=self.get_edit_menu())
+        self.add_cascade(label=LANG[lang]['menu']['actions'], menu=self.get_actions_menu())
+        self.add_cascade(label=LANG[lang]['menu']['tables'], menu=self.get_tables_menu())
+        self.add_cascade(label=LANG[lang]['menu']['reports'], menu=self.get_reports_menu())
+        self.add_cascade(label=LANG[lang]['menu']['investments'], menu=self.get_investments_menu())
+        self.add_cascade(label=LANG[lang]['menu']['tools'], menu=self.get_tools_menu())
+        self.add_command(label=LANG[lang]['menu']['about'], command=partial(AboutDialog, parent=self.parent))
 
 
     def get_file_menu(self) -> tk.Menu:

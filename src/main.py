@@ -10,18 +10,21 @@ import tkinter as tk
 class App(tk.Tk):
     """A financial accounting application."""
 
-    def __init__(self) -> None:
+    def __init__(self, lang: str = 'en') -> None:
         super().__init__()
         self.option_add('*tearOff', False)
         self.title("The Vault")
         self.geometry("1000x600")
+        self.lang = 'en'
+        
         self.create_widgets()
+        
 
     def create_widgets(self) -> None:
         self.create_menu()
 
     def create_menu(self) -> None:
-        self.menu = AppMenu(self)
+        self.menu = AppMenu(self, lang=self.lang)
         self.config(menu=self.menu)
 
     def run(self):
