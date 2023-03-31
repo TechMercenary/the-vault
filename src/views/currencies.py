@@ -85,8 +85,8 @@ class CurrencyListView(CustomTopLvel):
 
     def btn_edit_currency(self, event=None):
         """Open the edit currency view."""
-        data = self.table.get_items_data(selected_only=True)
-        if data:
+
+        if data := self.table.get_items_data(selected_only=True):
             currency_id = data[0]['id']
             CurrencyEditView(parent=self, currency_id=currency_id)
 
@@ -94,10 +94,10 @@ class CurrencyListView(CustomTopLvel):
         """Delete the selected currency."""
 
         if messagebox.askyesno("Delete confirmation", "Are you sure you want to delete the selected currencies?"):
-            currency_ids = []
-            for items_data in self.table.get_items_data(selected_only=True):
-                currency_ids.append(items_data['id'])
-                
+            currency_ids = [
+                items_data['id']
+                for items_data in self.table.get_items_data(selected_only=True)
+            ]
             if handle_db_errors(func=lambda: DB.delete_currencies(ids=currency_ids))():
                 messagebox.showinfo("Success", "Currencies Deleted successfully!")
                 self.event_generate("<<CurrencyDeleted>>")
@@ -178,9 +178,9 @@ class CurrencyEditView(CustomTopLvel):
         self.bind("<Return>", self.btn_accept)
 
     def load_data(self):
-        result = handle_db_errors(func=lambda: DB.get_currencies(ids=self.currency_id) )()
-        
-        if result:
+        if result := handle_db_errors(
+            func=lambda: DB.get_currencies(ids=self.currency_id)
+        )():
             self.code_var.set(result[0]['code'])
             self.desc_var.set(result[0]['description'])
             

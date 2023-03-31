@@ -38,7 +38,9 @@ def toplevel_set_active(window: tk.Toplevel | tk.Tk):
 
 def get_geometry(window: tk.Toplevel | tk.Tk):
     window.update_idletasks()
-    width, height, offset_x, offset_y = tuple([int(x) for x in re.findall(r'[0-9]+', window.winfo_geometry())])
+    width, height, offset_x, offset_y = tuple(
+        int(x) for x in re.findall(r'[0-9]+', window.winfo_geometry())
+    )
     return {
         'width': width,
         'height': height,
@@ -49,18 +51,11 @@ def get_geometry(window: tk.Toplevel | tk.Tk):
     
     
 def set_geometry(window: tk.Toplevel | tk.Tk, width: int=None, height: int = None, offset_x: int = None, offset_y: int = None):
-    if width is not None:
-        assert height is not None, "Height must be provided if width is provided"
-    if height is not None:
-        assert width is not None, "Width must be provided if height is provided"
-    if offset_x is not None:
-        assert offset_y is not None, "Offset_y must be provided if offset_x is provided"
-    if offset_y is not None:
-        assert offset_x is not None, "Offset_x must be provided if offset_y is provided"
-        
-    geometry_size = ''
-    if width is not None:
-        geometry_size=f"{width}x{height}"
+    
+    assert (width is not None and height is not None) or (offset_x is not None and offset_y is not None ), \
+        "Either (height and width) or (offset_x, offset_y) must both be provided"
+    
+    geometry_size = f"{width}x{height}" if width is not None else ''
     geometry_offset = ''
     if offset_x is not None:
         geometry_offset_x = f"{'+' if offset_x > 0 else '-'}{offset_x}"

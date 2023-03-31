@@ -4,7 +4,7 @@ from utils import center_window
 from config import logger
 import tkinter as tk
 
-# import pathlib;
+# import pathlib; 
 # PROJECT_PATH = pathlib.Path(__file__).parent
 
 class App(tk.Tk):
