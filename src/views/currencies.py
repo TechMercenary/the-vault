@@ -1,6 +1,6 @@
 from typing import Callable
-from utils import center_window, handle_db_errors
-from database.sqlite_handler import DB
+from utils import center_window, wrapper_message_error
+from database.sqlite_handler import DbCurrency
 from tkinter import messagebox
 from functools import partial
 from custom_widgets.table import CustomTable
@@ -9,7 +9,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from config import logger
 
-
+# TODO: update the code with the new functions, structures, and style from the other views
 class CurrencyListView(CustomTopLvel):
     """A view for the currencies."""
 
@@ -50,7 +50,7 @@ class CurrencyListView(CustomTopLvel):
     def get_currencies_from_db(self):
         """Get the currencies from the database."""
 
-        return DB.get_currencies()['result']
+        return DbCurrency.get_currencies()['result']
 
     def update_table(self, event):
         """Update the table with the latest data from the database."""
@@ -92,15 +92,22 @@ class CurrencyListView(CustomTopLvel):
 
     def btn_delete_currency(self, event=None):
         """Delete the selected currency."""
-
-        if messagebox.askyesno("Delete confirmation", "Are you sure you want to delete the selected currencies?"):
-            currency_ids = [
-                items_data['id']
-                for items_data in self.table.get_items_data(selected_only=True)
-            ]
-            if handle_db_errors(func=lambda: DB.delete_currencies(ids=currency_ids))():
-                messagebox.showinfo("Success", "Currencies Deleted successfully!")
-                self.event_generate("<<CurrencyDeleted>>")
+        currency_ids = [
+            items_data['id']
+            for items_data in self.table.get_items_data(selected_only=True)
+        ]
+        if (
+            currency_ids
+            and messagebox.askyesno(
+                "Delete confirmation",
+                "Are you sure you want to delete the selected currencies?",
+            )
+            and wrapper_message_error(
+                func=lambda: DbCurrency.delete_currencies(ids=currency_ids)
+            )()
+        ):
+            messagebox.showinfo("Success", "Currencies Deleted successfully!")
+            self.event_generate("<<CurrencyDeleted>>")
 
 
 
@@ -150,7 +157,7 @@ class CurrencyNewView(CustomTopLvel):
 
 
     def btn_accept(self, event=None):
-        if handle_db_errors(func=lambda: DB.new_currency(code=self.code_var.get(), description=self.desc_var.get()))():
+        if wrapper_message_error(func=lambda: DbCurrency.new_currency(code=self.code_var.get(), description=self.desc_var.get()))():
             messagebox.showinfo("Success", "Currency created successfully!")
             self.parent.event_generate("<<NewCurrencyAdded>>")
             self.parent.focus()
@@ -178,8 +185,8 @@ class CurrencyEditView(CustomTopLvel):
         self.bind("<Return>", self.btn_accept)
 
     def load_data(self):
-        if result := handle_db_errors(
-            func=lambda: DB.get_currencies(ids=self.currency_id)
+        if result := wrapper_message_error(
+            func=lambda: DbCurrency.get_currencies(ids=self.currency_id)
         )():
             self.code_var.set(result[0]['code'])
             self.desc_var.set(result[0]['description'])
@@ -227,7 +234,7 @@ class CurrencyEditView(CustomTopLvel):
     def btn_accept(self, event=None):
         """Edit the currency."""
         
-        result = DB.edit_currency(currency_id=self.currency_id, code=self.code_var.get(), description=self.desc_var.get())
+        result = DbCurrency.edit_currency(currency_id=self.currency_id, code=self.code_var.get(), description=self.desc_var.get())
         if result['error']:
             messagebox.showerror("Error", result['error'])
             self.focus()

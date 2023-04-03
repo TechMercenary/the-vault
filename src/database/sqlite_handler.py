@@ -6,49 +6,10 @@ from datetime import datetime
 from typing_extensions import Annotated
 from decimal import Decimal
 from config import SQLALQUEMY_ECHO
+from database.models import *
 import os
+import pandas as pd
 
-
-type_pk = Annotated[int, mapped_column(primary_key=True)]
-type_desc = Annotated[str|None, mapped_column(nullable=False, default="")]
-timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
-str_30 = Annotated[str, 30]
-str_50 = Annotated[str, 50]
-num_12_4 = Annotated[Decimal, 12]
-num_6_2 = Annotated[Decimal, 6]
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class Currency(Base):
-    __tablename__ = "currency"
-    id: Mapped[type_pk]
-    code: Mapped[str] = mapped_column(String(3), nullable=False, unique=True)
-    description: Mapped[type_desc]
-
-###########
-
-class User(Base):
-    __tablename__ = "user_account"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30))
-    fullname: Mapped[str|None]
-    addresses: Mapped[list["Address"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, name={self.name!r}, fullname={self.fullname!r})"
-
-class Address(Base):
-    __tablename__ = "address"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email_address: Mapped[str]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_account.id"))
-    user: Mapped["User"] = relationship(back_populates="addresses")
-    def __repr__(self) -> str:
-        return f"Address(id={self.id!r}, email_address={self.email_address!r})"
 
 engine = create_engine(
     f"sqlite+pysqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'the_vault.db')}",
@@ -69,46 +30,48 @@ def get_session() -> Session:
     return Session(engine)
 
 
-class DB:
+def db_error_handler(func):
+    def wrapper(*args, **kwargs):
+        result = None
+        error = None
+        try:
+            result = func(*args, **kwargs)
+        except SQLAlchemyError as e:
+            error = str(e)
+        return {"result": result, "error": error}
+    return wrapper
+
+
+class DbBase:
     @classmethod
     def new_session(cls) -> Session:
         return get_session()
-    
-    @staticmethod
-    def error_handler(func):
-        def wrapper(*args, **kwargs):
-            result = None
-            error = None
-            try:
-                result = func(*args, **kwargs)
-            except SQLAlchemyError as e:
-                error = str(e)
-            return {"result": result, "error": error}
-        return wrapper
-    
+
+
+class DbCurrency(DbBase):
 
     @classmethod
-    @error_handler
+    @db_error_handler
     def get_currencies(cls, ids: int | list=None):
         with cls.new_session() as session:
             query = session.query(Currency)
-            if ids is not None:
+            if ids:
                 ids = [ids] if isinstance(ids, int) else ids
                 query = query.filter(Currency.id.in_(ids))
             currencies = query.order_by(func.lower(Currency.code)).all()
 
-        return [
-            {
-                'id': currency.id,
-                'code': currency.code,
-                'description': currency.description,
-            }
-            for currency in currencies
-        ]
-    
+            return [
+                {
+                    'id': currency.id,
+                    'code': currency.code,
+                    'description': currency.description,
+                }
+                for currency in currencies
+            ]
+        
 
     @classmethod
-    @error_handler
+    @db_error_handler
     def new_currency(cls, code: str, description: str) -> Currency:
         currency = None
         with cls.new_session() as session:
@@ -116,10 +79,10 @@ class DB:
             session.add(currency)
             session.commit()
             
-        return currency
+            return currency
         
     @classmethod
-    @error_handler
+    @db_error_handler
     def edit_currency(cls, currency_id:int, code: str, description: str) -> Currency:
         currency = None
         with cls.new_session() as session:
@@ -133,11 +96,11 @@ class DB:
 
             session.commit()
 
-        return currency
+            return currency
 
 
     @classmethod
-    @error_handler
+    @db_error_handler
     def delete_currencies(cls, ids: int | list=None) -> True:
         with cls.new_session() as session:
             ids = [ids] if isinstance(ids, int) else ids
@@ -146,12 +109,75 @@ class DB:
                     session.delete(currency)
 
             session.commit()
-        return True
+            return True
+
+
+class DbAccount(DbBase):
+
+    @classmethod
+    @db_error_handler
+    def get_account_groups(cls, ids: int | list=None):
+        with cls.new_session() as session:
+            query = session.query(AccountGroup)
+            if ids:
+                ids = [ids] if isinstance(ids, int) else ids
+                query = query.filter(AccountGroup.id.in_(ids))
+            account_groups = query.order_by(func.lower(AccountGroup.name)).all()
+
+            return [
+                {
+                    'id': account_group.id,
+                    'name': account_group.name,
+                    'description': account_group.description,
+                    'parent_id': account_group.parent_id,
+                    'accounts': [account.id for account in account_group.accounts] if account_group.accounts else '',
+                }
+                for account_group in account_groups
+            ]
+        
+    @classmethod
+    @db_error_handler
+    def get_accounts(cls, ids: int | list=None):
+        with cls.new_session() as session:
+            query = session.query(Account)
+            if ids:
+                ids = [ids] if isinstance(ids, int) else ids
+                query = query.filter(Account.id.in_(ids))
+            accounts = query.order_by(func.lower(Account.name)).all()
+
+            return [
+                {
+                    'id': account.id,
+                    'name': account.name,
+                    'description': account.description,
+                    'account_number': account.account_number,
+                    'currency_id': account.currency_id,
+                    'currency_code': account.currency.code,
+                    'normal_side': account.normal_side,
+                    'opened_at': account.opened_at,
+                    'closed_at': account.closed_at,
+                    'account_group_id': account.account_group_id,
+                    'account_type': account.account_type,
+                }
+                for account in accounts
+            ]
 
 
 
 if __name__ == "__main__":
    
-    result = DB.delete_currencies(ids=[])
-    print(result['error'], result['result'])
+    with get_session() as session:
+        import datetime; from pytz import timezone
+        account = Account(
+              name='test',
+              currency_id=1,
+              opened_at=timezone('America/Sao_Paulo').localize(datetime.datetime.now()),
+              account_group_id=1,
+              account_type='ASSET',
+       )
+        session.add(account)
+        session.commit()
+
+
+    
 
