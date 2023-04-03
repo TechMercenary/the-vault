@@ -1,18 +1,14 @@
-from typing import Callable
-from utils import center_window, wrapper_message_error, datetime_timezone_converter
-from database.sqlite_handler import DbAccount, DbCurrency, get_session
+from utils import center_window, datetime_timezone_converter
+from database.sqlite_handler import get_session
 from database.models import AccountGroup, Account, Currency
 from sqlalchemy import func
 from tkinter import messagebox
-from functools import partial
 from custom_widgets.table import CustomTable
 from custom_widgets.toplevel import CustomTopLvel
 from config import logger, AccountType, MAP_ACCOUNT_TYPE_TO_SIDE, LOCAL_TIME_ZONE
 from views.account_groups import AccountGroupEditView, AccountGroupNewView
 import tkinter as tk
 import tkinter.ttk as ttk
-import pandas as pd
-import numpy as np
 import pendulum
 
 

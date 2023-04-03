@@ -5,12 +5,9 @@ from typing_extensions import Annotated
 from decimal import Decimal
 from config import Side, AccountType
 
-type_pk = Annotated[int, mapped_column(primary_key=True)]
-type_name = Annotated[str, mapped_column(nullable=False, unique=True)] 
-type_desc = Annotated[str|None, mapped_column(nullable=False, default="")]
-type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
-str_30 = Annotated[str, 30]
-num_6_2 = Annotated[Decimal, 6]
+# type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
+# str_30 = Annotated[str, 30]
+# num_6_2 = Annotated[Decimal, 6]
 
 
 class Base(DeclarativeBase):
@@ -21,7 +18,7 @@ class Currency(Base):
     __tablename__ = "currency"
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(3), nullable=False, unique=True)
-    description: Mapped[type_desc]
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
 
 from sqlalchemy.orm import foreign, remote
 
@@ -29,8 +26,8 @@ from sqlalchemy.orm import foreign, remote
 class AccountGroup(Base):
     __tablename__ = "account_group"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[type_name]
-    description: Mapped[type_desc]
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
     parent_id : Mapped[int|None] = mapped_column(ForeignKey("account_group.id"))
 
     # TODO: Check if omitting the "AccountGroup" in `relationship` is a problem
