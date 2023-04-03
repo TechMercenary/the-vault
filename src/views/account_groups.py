@@ -181,13 +181,20 @@ class AccountGroupEditView(_ChangeTemplate):
                         available_groups.append(child.id)
                         available_groups.extend(get_available_groups(parent_group=child))
                 return available_groups
-                
-            root_groups = session.query(AccountGroup).filter(AccountGroup.parent_id == None, AccountGroup.id != self.account_group_id).all()
+
+            root_groups = (
+                session.query(AccountGroup)
+                .filter(
+                    AccountGroup.parent_id is None,
+                    AccountGroup.id != self.account_group_id,
+                )
+                .all()
+            )
             available_groups = []
             for group in root_groups:
                 available_groups.append(group.id)
                 available_groups.extend(get_available_groups(parent_group=group))
-            
+
             return available_groups
     
     def set_account_group_map(self):
