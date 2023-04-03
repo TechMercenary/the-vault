@@ -14,17 +14,6 @@ def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
     return dt_to.to_datetime_string()
 
 
-def wrapper_message_error(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        logger.debug(f"Calling {func.__name__} with args {args} and kwargs {kwargs}")
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-    return wrapper
-
-
 def test_toplevel_class(ToplevelClass: tk.Toplevel, *args, **kwargs):
     root = tk.Tk()
     center_window(window=root, context_window=None)
@@ -53,7 +42,6 @@ def get_geometry(window: tk.Toplevel | tk.Tk):
         'offset_x': offset_x,
         'offset_y': offset_y
     }
-    
     
     
 def set_geometry(window: tk.Toplevel | tk.Tk, width: int=None, height: int = None, offset_x: int = None, offset_y: int = None):
@@ -97,7 +85,8 @@ def center_window(window: tk.Toplevel | tk.Tk, context_window=None) -> None:
     offset_y = int(parent_geometry['offset_y'] + parent_geometry['height']//2 - window_geometry['height']//2)
     
     set_geometry(window, offset_x=offset_x, offset_y=offset_y)
-   
+
+
 if __name__ == '__main__':
     date_str = '2021-01-01 23:59:59'
     print('date_str', date_str)
