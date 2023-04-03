@@ -1,7 +1,7 @@
 from config import logger
 from views.about import AboutDialog
 from views.currencies import CurrencyListView
-from views.chart_of_accounts import ChartOfAccountsView
+from views.accounts import AccountListView
 from functools import partial
 import tkinter as tk
 
@@ -98,8 +98,7 @@ class AppMenu(tk.Menu):
 
     def get_tables_menu(self) -> tk.Menu:
         tables_menu = tk.Menu(self)
-        tables_menu.add_cascade(label="Chart of Accounts", command=partial(ChartOfAccountsView, parent=self.parent))
-        tables_menu.add_cascade(label="Accounts", command=lambda: logger.debug("Selected Menu Accounts"))
+        tables_menu.add_cascade(label="Accounts", command=partial(AccountListView, parent=self.parent))
         tables_menu.add_cascade(label="Transactions", command=lambda: logger.debug("Selected Menu Accounts"))
         tables_menu.add_cascade(label="Currencies", command=partial(CurrencyListView, parent=self.parent))
         tables_menu.add_cascade(label="Credit Cards", command=lambda: logger.debug("Selected Menu Credit Cards"))

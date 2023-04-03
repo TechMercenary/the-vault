@@ -8,16 +8,6 @@ class CustomTable(tk.Frame):
         Usage:
         
         1. First, create an instance of the widget: 
-        
-            CustomTable(parent, selectmode="extended", data=data)
-            
-            - Only the `parent` argument is required.
-            - The `selectmode` argument is optional. It can be "extended", "browse", or "none" . (See https://tcl.tk/man/tcl8.6/TkCmd/ttk_treeview.htm#M6)
-            - The `data` argument is optional:
-                - It is a list of dictionaries. 
-                - Each dictionary represents a row. 
-                - The keys of the dictionary are the column names
-                
         2. Then, add the columns (and their configurations) that will be shown in the table.
             This is done by calling the `add_column` method for each column. (See more in the docstring of the method).
             
@@ -25,14 +15,27 @@ class CustomTable(tk.Frame):
     
     """
     
-    def __init__(self, parent, selectmode="extended", data=None) -> None:
+    def __init__(self, parent, selectmode="extended", data=None, first_col_width : int | None = None, tree_expanded: bool = False) -> None:
+        """
+            Args:
+                parent: The parent window.
+                selectmode: 
+                    - "extended": Multiple items can be selected using the shift and control keys.
+                    - "browse": Only one item can be selected at a time.
+                    - "none": No items can be selected.
+                data: A list of dictionaries. Each dictionary represents a row. The keys of the dictionary are the column names.
+                show_tree: If True, the column #0 of the treeview will be shown
+                tree_expanded: If True, the treeview will be expanded by default.
+        """
         super().__init__(parent)
 
         self._data = data
+        self._first_col_width = first_col_width
+        self._tree_expanded = tree_expanded
     
         # Create the table
         self._table = ttk.Treeview(self, selectmode=selectmode)
-        self._table.grid(column=0, row=0)
+        self._table.grid(column=0, row=0, sticky="nsew")
         
         # Create the scrollbar
         self._scrollbar = ttk.Scrollbar(self, orient="vertical", command=self._table.yview)
@@ -44,12 +47,31 @@ class CustomTable(tk.Frame):
         
         # Workaround. See `self._configure_columns`
         self.first_update = True
+        
+        # Make the treeview stretch to fill the window
+        self.grid_columnconfigure(0, weight=1)
 
 
     def bind(self, *args):
         """Bind an event to the table."""
         self._table.bind(*args)
 
+
+    def expand_items(self):
+        """Expand all items in the treeview."""
+        
+        def expand_treeview(item):
+            # Expand the item to show its subitems
+            self._table.item(item, open=True)
+            
+            # Recursively expand all subitems
+            for child_item in self._table.get_children(item):
+                expand_treeview(child_item)
+
+        # Expand the entire TreeView
+        for item in self._table.get_children():
+            expand_treeview(item)
+    
 
     def get_columns(self) -> list:
         """Return the column names."""
@@ -98,7 +120,7 @@ class CustomTable(tk.Frame):
                 'stretch': stretch,
             },
             'heading_config': {
-                'text': text or column.title(),
+                'text': text or column.replace('_',' ').title(),
                 'command': lambda: self._sort_table(column=column),
             }
         }
@@ -150,7 +172,11 @@ class CustomTable(tk.Frame):
             
             # Assing columns and hide the first column
             self._table["columns"] = tuple(self._col_config.keys())
-            self._table.column("#0", width=0, stretch=tk.NO)
+            if self._first_col_width:
+                self._table.column("#0", width=self._first_col_width, stretch=tk.YES)
+            else:
+                self._table.column("#0", width=0, stretch=tk.NO)
+            
 
             # Assign headings and column attributes
             for column in self._col_config.keys():
@@ -165,14 +191,19 @@ class CustomTable(tk.Frame):
         # Update the data
         self._data = data or self._data
 
-        self._configure_columns()
-
         self.delete_all()
-
+        self.insert_data()
+        self._configure_columns()
+        if self._tree_expanded:
+            self.expand_items()
+                
+    def insert_data(self):
         # Insert data based on the column configuration
-        for item in self._data:
-            values = tuple(item[column] for column in self.get_columns())
-            self._table.insert('', 'end', values=values)
+        if self._data:
+            for item in self._data:
+                values = tuple(item[column] for column in self.get_columns())
+                self._table.insert('', 'end', values=values)
+                
 
     def get_items_data(self, selected_only: bool = False):
         """Return the selected items."""
@@ -182,10 +213,10 @@ class CustomTable(tk.Frame):
         for item_id in self._table.selection() if selected_only else self._table.get_children():
             # get the item's data as a tuple
             item_values = self._table.item(item_id)['values']
-
             # Map tuple's values with the column names
             item_data = {
-                columns[index]: item_values[index] for index in range(len(columns))
+                # len(item_values) is used over len(columns) because the item's values may be less than the columns, but never greater
+                columns[index]: item_values[index] for index in range(len(item_values))
             }
             
             # Add the items's data to the list
@@ -223,7 +254,7 @@ if __name__ == '__main__':
     table.add_column(column='name', anchor=tk.W, width=100)
     table.add_column(column='age', anchor=tk.E, width=50)
     table.update_table()
-    table.grid(column=0, row=0, columnspan=3, padx=10, pady=10)
+    table.grid(column=0, row=0, columnspan=3, padx=10, pady=10, sticky='nsew')
 
     def print_selected():
         print(table.get_items_data(selected_only=True))

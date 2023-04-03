@@ -2,18 +2,24 @@ import functools
 import tkinter as tk
 import re
 from tkinter import messagebox
+from config import logger, LOCAL_TIME_ZONE
+import pytz
+import datetime
+import pendulum
 
 
-def handle_db_errors(func):
+def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
+    dt_from = pendulum.parser.parse(date_str, tz=tz_from)
+    dt_to = dt_from.in_timezone(tz_to)
+    return dt_to.to_datetime_string()
+
+
+def wrapper_message_error(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        print(f"Calling {func.__name__} with args {args} and kwargs {kwargs}")
+        logger.debug(f"Calling {func.__name__} with args {args} and kwargs {kwargs}")
         try:
-            result = func(*args, **kwargs)
-            if result.get('error'):
-                messagebox.showerror("Error", result['error'])
-            else:
-                return result['result']
+            return func(*args, **kwargs)
         except Exception as e:
             messagebox.showerror("Error", str(e))
     return wrapper
@@ -92,3 +98,14 @@ def center_window(window: tk.Toplevel | tk.Tk, context_window=None) -> None:
     
     set_geometry(window, offset_x=offset_x, offset_y=offset_y)
    
+if __name__ == '__main__':
+    date_str = '2021-01-01 23:59:59'
+    print('date_str', date_str)
+    
+    tz_from = LOCAL_TIME_ZONE
+    tz_to='UTC'
+    
+    pendulum.from_format(date_str, format, tz=tz_from).in_timezone(tz_to).to_datetime_string()
+
+
+    
