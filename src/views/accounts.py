@@ -30,42 +30,49 @@ class AccountTable(CustomTable):
         """
 
         with get_session() as session:
-            def recursive_children(parent_iid: str, parent_group: AccountGroup):
-                children = sorted(parent_group.accounts, key=lambda c: c.name.lower())
-                children.extend(sorted(parent_group.children, key=lambda c: c.name.lower()))
+            def recursive_insert(parent_iid: str = '', parent_group: AccountGroup = None):
                 
-                for child in children:
+                columns = ['type', 'id', 'description', 'account_number', 'currency', 'opened_at', 'closed_at', 'account_type']
+                TEMPLATE_DICT = dict.fromkeys(columns, '')
+                
+                # Insert the accounts
+                accounts = parent_group.accounts if parent_group else []
+                for account in accounts:
+                    account_data = TEMPLATE_DICT.copy()
+                    account_data.update({
+                        'type': 'A',
+                        'id': account.id,
+                        'description': account.description,
+                        'account_number': account.account_number,
+                        'currency': account.currency.code,
+                        'opened_at': datetime_timezone_converter(account.opened_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE),
+                        'closed_at': datetime_timezone_converter(account.closed_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE) if account.closed_at else '',
+                        'account_type': account.account_type.value
+                    })
+                    account_values = tuple(account_data.values())
+                    self._table.insert(parent_iid, 'end', text=account.name, values=account_values)
+                
+                # If there's no parent, use the root account groups
+                if parent_group is None:
+                    subgroups = session.query(AccountGroup).filter_by(parent_id=None).order_by(func.lower(AccountGroup.name)).all()
+                else:
+                    subgroups = parent_group.children
+                
+                # Insert the sub-groups
+                for group in subgroups:
+                    group_data = TEMPLATE_DICT.copy()
+                    group_data.update({
+                        'type': 'G',
+                        'id': group.id,
+                        'description': group.description,
+                    })
+                    group_values = tuple(group_data.values())
+                    iid = self._table.insert(parent_iid, 'end', text=group.name, values=group_values)
                     
-                    opened_at = getattr(child, 'opened_at','')
-                    if opened_at:
-                        opened_at = datetime_timezone_converter(opened_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE)
-                    
-                    closed_at = getattr(child, 'closed_at','')
-                    if closed_at:
-                        closed_at = datetime_timezone_converter(closed_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE)
-                    
-                    
-                    iid = self._table.insert(parent_iid, 'end', text=child.name, values=tuple({
-                        'type': 'A' if isinstance(child, Account) else 'G',
-                        'id': child.id,
-                        'description': child.description,
-                        'account_number': getattr(child, 'account_number',''),
-                        'currency': getattr(getattr(child, 'currency',{}),'code',''),
-                        'opened_at': opened_at,
-                        'closed_at': closed_at,
-                        'account_type': getattr(getattr(child, 'account_type', {}),'value',''),
-                    }.values()))
-                    if isinstance(child, AccountGroup):
-                        recursive_children(parent_iid=iid, parent_group=child)
+                    # Explore the sub-groups of this group                    
+                    recursive_insert(parent_iid=iid, parent_group=group)
 
-            # Iterate through the root groups
-            for group in session.query(AccountGroup).filter_by(parent_id=None).order_by(func.lower(AccountGroup.name)).all():
-                iid = self._table.insert('', 'end', text=group.name, values=tuple({
-                    'type': 'G',
-                    'id': group.id,
-                    'description': group.description,
-                }.values()))
-                recursive_children(parent_iid=iid, parent_group=group)
+            recursive_insert()
 
 
 class AccountListView(CustomTopLvel):

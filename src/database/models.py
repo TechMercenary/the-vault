@@ -30,10 +30,9 @@ class AccountGroup(Base):
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
     parent_id : Mapped[int|None] = mapped_column(ForeignKey("account_group.id"))
 
-    # TODO: Check if omitting the "AccountGroup" in `relationship` is a problem
-    parent: Mapped["AccountGroup"] = relationship("AccountGroup", remote_side="AccountGroup.id", back_populates="children")
-    children: Mapped[list["AccountGroup"]] = relationship("AccountGroup", back_populates="parent")
-    accounts: Mapped[list["Account"]] = relationship(back_populates="account_group")
+    parent: Mapped["AccountGroup"] = relationship(remote_side="AccountGroup.id", back_populates="children")
+    children: Mapped[list["AccountGroup"]] = relationship(back_populates="parent", order_by="func.lower(AccountGroup.name)")
+    accounts: Mapped[list["Account"]] = relationship(back_populates="account_group", order_by="func.lower(Account.name)")
 
     @property
     def alias(self):
@@ -62,14 +61,30 @@ class Account(Base):
     
     currency: Mapped["Currency"] = relationship("Currency")
     account_group: Mapped["AccountGroup"] = relationship(back_populates="accounts")
+    # account_group: Mapped["AccountGroup"] = relationship()
     
     @property
     def alias(self):
         return f"{self.account_group.alias}>{self.name}"
 
-# TODO: Implement model AccountOverdraft -- Replace AccountOverdraft with AccountLimitHistory  
-# TODO: Implement model TransactionGroup
-# TODO: Implement model Transaction
+
+
+
+# class Transaction(Base):
+#     """
+#        Transaction model 
+#     """
+#     __tablename__ = "transaction"
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     timestamp: Mapped[str]
+#     description: Mapped[str|None] = mapped_column(nullable=False, default="")
+#     installment_number: Mapped[int] = mapped_column(nullable=False, default=1)
+#     installment_total: Mapped[int] = mapped_column(nullable=False, default=1) # TODO: Enforce that this is always >= installment_number
+#     debit_voucher_id: Mapped[int|None] = mapped_column(ForeignKey("voucher.id"))
+    
+
+
+# TODO: (Later, used only for alerts) Implement model AccountOverdraft -- Replace AccountOverdraft with AccountLimitHistory  
 # TODO: Implement model Employer
 # TODO: Implement model Salary
 # TODO: Implement model CreditCard
