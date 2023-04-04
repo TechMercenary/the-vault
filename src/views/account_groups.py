@@ -169,43 +169,27 @@ class AccountGroupEditView(_ChangeTemplate):
         except Exception as e:
             messagebox.showerror("Error", str(e))
         
-        
-    def _available_groups(self):
-        with get_session() as session:
-            def get_available_groups(parent_group):
-                if not parent_group.children:
-                    return []
-                available_groups = []
-                for child in parent_group.children:
-                    if child.id != self.account_group_id:
-                        available_groups.append(child.id)
-                        available_groups.extend(get_available_groups(parent_group=child))
-                return available_groups
-
-            root_groups = (
-                session.query(AccountGroup)
-                .filter(
-                    AccountGroup.parent_id is None,
-                    AccountGroup.id != self.account_group_id,
-                )
-                .all()
-            )
-            available_groups = []
-            for group in root_groups:
-                available_groups.append(group.id)
-                available_groups.extend(get_available_groups(parent_group=group))
-
-            return available_groups
     
     def set_account_group_map(self):
-        # Workaround: a map that associates the alias with the id
-        self.account_group_map = {'<Empty>': ''}
         with get_session() as session:
-            account_groups = session.query(AccountGroup)\
-                .filter(AccountGroup.id.in_(self._available_groups()))\
-                .all()
-            
-            self.account_group_map.update({group.alias: group.id for group in account_groups})        
+            def get_exluded_groups(parent_group):
+                excluded_groups = [parent_group.id]
+                if not parent_group.children:
+                    return excluded_groups
+                for child in parent_group.children:
+                    excluded_groups.extend(get_exluded_groups(parent_group=child))
+                return excluded_groups
+
+            excluded_groups = get_exluded_groups(
+                    parent_group=session.query(AccountGroup)\
+                        .filter(AccountGroup.id == self.account_group_id)\
+                            .first()
+                )
+            available_groups = session.query(AccountGroup).filter(AccountGroup.id.not_in(excluded_groups)).all()
+        
+            self.account_group_map = {'<Empty>': ''}
+            self.account_group_map.update({group.alias: group.id for group in available_groups})
+    
     
     def get_account_groups_list(self):
         account_groups_list = list(self.account_group_map.keys())
