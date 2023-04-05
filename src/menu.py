@@ -101,7 +101,7 @@ class AppMenu(tk.Menu):
         tables_menu = tk.Menu(self)
         tables_menu.add_cascade(label="Accounts", command=partial(AccountListView, parent=self.parent))
         tables_menu.add_cascade(label="Providers", command=partial(ProviderListView, parent=self.parent))
-        tables_menu.add_cascade(label="Transactions", command=lambda: logger.debug("Selected Menu Accounts"))
+        tables_menu.add_cascade(label="Transactions", command=lambda: logger.debug("Selected Menu Transactinos"))
         tables_menu.add_cascade(label="Currencies", command=partial(CurrencyListView, parent=self.parent))
         tables_menu.add_cascade(label="Credit Cards", command=lambda: logger.debug("Selected Menu Credit Cards"))
         tables_menu.add_cascade(label="Credit Cards Summaries", command=lambda: logger.debug("Selected Menu Credit Cards Summaries"))
