@@ -5,7 +5,7 @@ from sqlalchemy import func
 from tkinter import messagebox
 from custom_widgets.table import CustomTable
 from custom_widgets.toplevel import CustomTopLvel
-from config import logger, AccountType, MAP_ACCOUNT_TYPE_TO_SIDE, LOCAL_TIME_ZONE
+from config import logger, AccountTypeEnum, MAP_ACCOUNT_TYPE_TO_SIDE, LOCAL_TIME_ZONE
 from views.account_groups import AccountGroupEditView, AccountGroupNewView
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -292,7 +292,7 @@ class _ChangeTemplate(CustomTopLvel):
             
         cbox_account_type = ttk.Combobox(input_frame, textvariable=self.account_type_var, width=30, state="readonly")
         cbox_account_type.grid(column=column_input, row=row_num, sticky="w")
-        cbox_account_type.config(values=list(AccountType.__members__.keys()))
+        cbox_account_type.config(values=list(AccountTypeEnum.__members__.keys()))
         cbox_account_type.current(0)
         
         cbox_account_type.bind("<<ComboboxSelected>>", self.update_normal_side)

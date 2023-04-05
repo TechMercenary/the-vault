@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing_extensions import Annotated
 from decimal import Decimal
-from config import Side, AccountType
+from config import NormalSideEnum, AccountTypeEnum
 
 # type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
 # str_30 = Annotated[str, 30]
@@ -37,7 +37,6 @@ class AccountGroup(Base):
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
     parent_id : Mapped[int|None] = mapped_column(ForeignKey("account_group.id"))
 
-    # TODO: Check if omitting the "AccountGroup" in `relationship` is a problem
     parent: Mapped["AccountGroup"] = relationship("AccountGroup", remote_side="AccountGroup.id", back_populates="children")
     children: Mapped[list["AccountGroup"]] = relationship("AccountGroup", back_populates="parent")
     accounts: Mapped[list["Account"]] = relationship(back_populates="account_group")
@@ -65,7 +64,7 @@ class Account(Base):
     opened_at: Mapped[str]
     closed_at: Mapped[str|None]
     account_group_id: Mapped[int] = mapped_column(ForeignKey("account_group.id"))
-    account_type: Mapped[AccountType]
+    account_type: Mapped[AccountTypeEnum]
     
     currency: Mapped["Currency"] = relationship("Currency")
     account_group: Mapped["AccountGroup"] = relationship(back_populates="accounts")
