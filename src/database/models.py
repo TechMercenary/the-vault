@@ -14,6 +14,13 @@ class Base(DeclarativeBase):
     pass
 
 
+class Provider(Base):
+    __tablename__ = "provider"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
+    
+
 class Currency(Base):
     __tablename__ = "currency"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -66,6 +73,8 @@ class Account(Base):
     @property
     def alias(self):
         return f"{self.account_group.alias}>{self.name}"
+
+
 
 # TODO: Implement model AccountOverdraft -- Replace AccountOverdraft with AccountLimitHistory  
 # TODO: Implement model TransactionGroup
