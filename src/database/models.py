@@ -14,6 +14,13 @@ class Base(DeclarativeBase):
     pass
 
 
+class Provider(Base):
+    __tablename__ = "provider"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
+    
+
 class Currency(Base):
     __tablename__ = "currency"
     id: Mapped[int] = mapped_column(primary_key=True)
