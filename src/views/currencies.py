@@ -14,7 +14,7 @@ class CurrencyListView(CustomTopLvel):
     """A view for the currencies."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk):
-        super().__init__(parent, title="Monedas")
+        super().__init__(parent, title="Currencies")
         
         buttons_frame = self.get_buttons_frame(parent=self.main_frame)
         buttons_frame.grid(column=0, row=1, sticky="ew")
