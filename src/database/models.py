@@ -75,19 +75,26 @@ class Account(Base):
         return f"{self.account_group.alias}>{self.name}"
 
 
-
-
-# class Transaction(Base):
-#     """
-#        Transaction model 
-#     """
-#     __tablename__ = "transaction"
-#     id: Mapped[int] = mapped_column(primary_key=True)
-#     timestamp: Mapped[str]
-#     description: Mapped[str|None] = mapped_column(nullable=False, default="")
-#     installment_number: Mapped[int] = mapped_column(nullable=False, default=1)
-#     installment_total: Mapped[int] = mapped_column(nullable=False, default=1) # TODO: Enforce that this is always >= installment_number
-#     debit_voucher_id: Mapped[int|None] = mapped_column(ForeignKey("voucher.id"))
+class Transaction(Base):
+    """
+       Transaction model 
+    """
+    __tablename__ = "transaction"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    timestamp: Mapped[str]
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
+    installment_number: Mapped[int|None] = mapped_column(nullable=False, default=1)
+    installment_total: Mapped[int|None] = mapped_column(nullable=False, default=1) # TODO: Enforce that this is always >= installment_number
+    debit_reference: Mapped[str|None] = mapped_column(nullable=False, default="")
+    debit_account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    debit_amount: Mapped[Decimal]
+    credit_reference: Mapped[str|None] = mapped_column(nullable=False, default="")
+    credit_account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    credit_amount: Mapped[Decimal]
+    is_reconciled: Mapped[bool] = mapped_column(nullable=False, default=False)
+    
+    debit_account = relationship("Account", foreign_keys=[debit_account_id])
+    credit_account = relationship("Account", foreign_keys=[credit_account_id])
     
 
 
