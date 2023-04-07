@@ -189,7 +189,17 @@ class FrameInput(ttk.Frame):
             .grid(column=0, row=self._get_inputs_qty(), padx=5, pady=3, sticky="w")
 
     def get_values(self) -> list[dict[str: str|int|float|bool]]:
-        return {key: self._input_variables[key].get() for key in self._input_variables.keys()}
+        
+        values = {}
+        for key in self._input_variables.keys():
+            value = None
+            if isinstance(self._input_widgets[key], KeyValueCombobox):
+                value = self._input_widgets[key].get()
+            else:
+                value = self._input_variables[key].get()
+            values[key] = value
+        return values
+
         
     def add_input_entry(
         self,
@@ -213,10 +223,10 @@ class FrameInput(ttk.Frame):
     def add_input_combobox(
         self,
         key: str,
+        func_get_values: callable,
         text: str = None,
         width: int = 100,
         values: dict = None,
-        func_update: callable = None,
         enable_empty_option: bool = False,
         state="readonly"
     ) -> None:
@@ -225,7 +235,7 @@ class FrameInput(ttk.Frame):
         variable = tk.StringVar()
         widget = KeyValueCombobox(
             self,
-            func_update=func_update,
+            func_get_values=func_get_values,
             values=values,
             enable_empty_option=enable_empty_option,
             textvariable=variable,

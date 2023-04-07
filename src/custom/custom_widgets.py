@@ -37,50 +37,45 @@ class TimestampEntry(ttk.Entry):
 class KeyValueCombobox(ttk.Combobox):
     """ A combobox that stores the values in a dictionary.
         The values are displayed in the combobox and the keys are stored.
-        :param func_update: A function that returns a dictionary with the values {'key': value}
+        :param func_get_values: A function that returns a dictionary with the values {'key': value}
             When it is set, the combobox will be updated when the dropdown is opened.
     """
-    def __init__(self, parent, func_update: callable = None, values: dict | list = None, enable_empty_option: bool = False, **kwargs):
+    def __init__(self, parent, func_get_values: callable, enable_empty_option: bool = False, **kwargs):
         self._key_value_dict = {}
         self._enable_empty_option = enable_empty_option
         super().__init__(master=parent, **kwargs)
         
-        self._func_update = func_update
-        self._values = values
+        self._func_get_values = func_get_values
         
-        if func_update:
-            self.bind("<<ComboboxSelected>>", partial(self.update, func_update=func_update))
+        self.bind("<<ComboboxSelected>>", self._update)
             
-        self.update(func_update=func_update, values=values)
+        self._update()
+        self.current(0)
 
-    def update(self, event=None, values: dict | list | None = None, func_update: callable = None):
+    def _update(self, event=None):
         """Update the values of the combobox.
-            The values are updated with the function passed to func_update.
+            The values are updated with the function passed to func_get_values.
         """
-        values_dict = None
-        if func_update:=func_update or self._func_update:
-            values_dict = func_update()
-        elif (values:=values or self._values):
-            if isinstance(values, list):
-                values_dict = { str(index): values[index] for index in range(len(values))}
-            elif isinstance(values, dict):
-                values_dict = values
-
-        if values_dict:
-            self._set_values(values_dict)
-
-
-    def _set_values(self, key_values: dict):
-        """Set the values of the combobox.
-            :param key_values: A dictionary with the values {'key': value}
-        """
-        self._key_value_dict = {'': '<Empty>', **key_values} if self._enable_empty_option else key_values
+        old_key = self.current_key()
+        old_value = self.current_value()
+        key_values = self._func_get_values()
+        self._key_value_dict = {None: '<Empty>', **key_values} if self._enable_empty_option else key_values
         self['values'] = list(self._key_value_dict.values())
+        if old_key in self._key_value_dict:
+            if old_value == self._key_value_dict[old_key]:
+                self.current(self['values'].index(old_value))
+            else:
+                self.current(0)
+        
 
     def current_key(self):
-        current_value = self.get()
-        return self._key_value_dict.get(current_value)
+        for k in self._key_value_dict:
+            if self._key_value_dict[k] == super().get():
+                return k
 
     def current_value(self):
-        return self.get()
+        return super().get()
 
+    def get(self) -> str:
+        return {'key': self.current_key(), 'value': self.current_value()}
+        
