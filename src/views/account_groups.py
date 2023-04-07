@@ -2,12 +2,13 @@ from utils import center_window, datetime_timezone_converter
 from database.sqlite_handler import get_session
 from database.models import AccountGroup, Account, Currency, AccountGroup
 from tkinter import messagebox
-from custom_widgets.toplevel import CustomTopLvel
+from custom.toplevel import CustomTopLvel
 from config import logger, LOCAL_TIME_ZONE
 import tkinter as tk
 import tkinter.ttk as ttk
 
 
+# TODO: Use new templates
 class _ChangeTemplate(CustomTopLvel):
     """ A template view for create and edit account groups"""
     

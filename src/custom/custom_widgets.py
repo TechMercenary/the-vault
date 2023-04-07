@@ -1,5 +1,38 @@
 from tkinter import ttk
 from functools import partial
+import contextlib
+import tkinter as tk
+import pendulum
+
+
+class TimestampEntry(ttk.Entry):
+    def __init__(
+            self,
+            parent,
+            format: str ='YYYY-MM-DD HH:mm:ss',
+            value: str = None,
+            default_now: bool = False,
+            **kwargs
+        ):
+        
+        super().__init__(master=parent, **kwargs)
+            
+        self._format = format
+        
+        if value:=value or (pendulum.now() if default_now else None):
+            self.insert(tk.END, value)
+
+        self.bind('<FocusOut>', self._parse_input)
+        self._parse_input()
+    
+    def _parse_input(self, event=None):
+        input_str = self.get().strip()
+
+        with contextlib.suppress(ValueError):
+            new_value = pendulum.parse(input_str).format(self._format)
+            self.delete(0, tk.END)
+            self.insert(new_value)
+
 
 class KeyValueCombobox(ttk.Combobox):
     """ A combobox that stores the values in a dictionary.
@@ -7,9 +40,9 @@ class KeyValueCombobox(ttk.Combobox):
         :param func_update: A function that returns a dictionary with the values {'key': value}
             When it is set, the combobox will be updated when the dropdown is opened.
     """
-    def __init__(self, parent, func_update: callable = None, values: dict | list = None, cbox_enable_empty_option: bool = False, **kwargs):
+    def __init__(self, parent, func_update: callable = None, values: dict | list = None, enable_empty_option: bool = False, **kwargs):
         self._key_value_dict = {}
-        self._cbox_enable_empty_option = cbox_enable_empty_option
+        self._enable_empty_option = enable_empty_option
         super().__init__(master=parent, **kwargs)
         
         self._func_update = func_update
@@ -41,7 +74,7 @@ class KeyValueCombobox(ttk.Combobox):
         """Set the values of the combobox.
             :param key_values: A dictionary with the values {'key': value}
         """
-        self._key_value_dict = {'': '<Empty>', **key_values} if self._cbox_enable_empty_option else key_values
+        self._key_value_dict = {'': '<Empty>', **key_values} if self._enable_empty_option else key_values
         self['values'] = list(self._key_value_dict.values())
 
     def current_key(self):
