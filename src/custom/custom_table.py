@@ -15,7 +15,13 @@ class CustomTable(tk.Frame):
     
     """
     
-    def __init__(self, parent, selectmode="extended", data=None, first_col_width : int | None = None, tree_expanded: bool = False) -> None:
+    def __init__(self,
+        parent: tk.Toplevel | tk.Tk,
+        selectmode="extended",
+        tree_root_col_width : int = 0,
+        tree_expanded: bool = False,
+        func_get_data: callable = lambda: [],
+    ) -> None:
         """
             Args:
                 parent: The parent window.
@@ -23,15 +29,15 @@ class CustomTable(tk.Frame):
                     - "extended": Multiple items can be selected using the shift and control keys.
                     - "browse": Only one item can be selected at a time.
                     - "none": No items can be selected.
-                data: A list of dictionaries. Each dictionary represents a row. The keys of the dictionary are the column names.
                 show_tree: If True, the column #0 of the treeview will be shown
                 tree_expanded: If True, the treeview will be expanded by default.
+                func_get_data: A function that returns a list of dictionaries. Each dictionary represents a row. The keys of the dictionary are the column names.
         """
         super().__init__(parent)
 
-        self._data = data
-        self._first_col_width = first_col_width
+        self._tree_root_col_width = tree_root_col_width
         self._tree_expanded = tree_expanded
+        self._func_get_data = func_get_data
     
         # Create the table
         self._table = ttk.Treeview(self, selectmode=selectmode)
@@ -46,18 +52,17 @@ class CustomTable(tk.Frame):
         self._col_config = {}
         
         # Workaround. See `self._configure_columns`
-        self.first_update = True
+        self._first_update = True
         
         # Make the treeview stretch to fill the window
         self.grid_columnconfigure(0, weight=1)
-
-
+        
     def bind(self, *args):
         """Bind an event to the table."""
         self._table.bind(*args)
 
 
-    def expand_items(self):
+    def _expand_items(self):
         """Expand all items in the treeview."""
         
         def expand_treeview(item):
@@ -157,7 +162,7 @@ class CustomTable(tk.Frame):
         for index, (val, k) in enumerate(items):
             self._table.move(k, '', index)
         
-    def delete_all(self):
+    def _delete_all(self):
         """Delete all items in the table."""
         
         for item in self._table.get_children():
@@ -168,42 +173,34 @@ class CustomTable(tk.Frame):
             It seems there's a bug in Tkinter where new columns are not being 
             configured properly. This is a workaround.
         """
-        if self.first_update:
+        if self._first_update:
             
             # Assing columns and hide the first column
             self._table["columns"] = tuple(self._col_config.keys())
-            if self._first_col_width:
-                self._table.column("#0", width=self._first_col_width, stretch=tk.YES)
-            else:
-                self._table.column("#0", width=0, stretch=tk.NO)
-            
+            self._table.column("#0", width=self._tree_root_col_width, stretch=bool(self._tree_root_col_width))
 
             # Assign headings and column attributes
             for column in self._col_config.keys():
                 self._table.column(column, **self._col_config[column]['column_config'])
                 self._table.heading(column, **self._col_config[column]['heading_config'])
-            self.first_update = False
+            self._first_update = False
 
+    def _insert_data(self):
+        for item in self._func_get_data():
+            values = tuple(item[column] for column in self.get_columns())
+            self._table.insert('', 'end', values=values)
+            
 
-    def update_table(self, data: list = None):
-        """Update the table data."""
-
-        # Update the data
-        self._data = data or self._data
-
-        self.delete_all()
-        self.insert_data()
+    def refresh(self, event = None):
+        """
+            Update the table data.
+            Do not remove the `event` parameter. It is used by the `bind` method.
+        """
+        self._delete_all()
+        self._insert_data()
         self._configure_columns()
         if self._tree_expanded:
-            self.expand_items()
-                
-    def insert_data(self):
-        # Insert data based on the column configuration
-        if self._data:
-            for item in self._data:
-                values = tuple(item[column] for column in self.get_columns())
-                self._table.insert('', 'end', values=values)
-                
+            self._expand_items()
 
     def get_items_data(self, selected_only: bool = False):
         """Return the selected items."""
@@ -215,7 +212,7 @@ class CustomTable(tk.Frame):
             item_values = self._table.item(item_id)['values']
             # Map tuple's values with the column names
             item_data = {
-                # len(item_values) is used over len(columns) because the item's values may be less than the columns, but never greater
+                # `len(item_values)` It is used over `len(columns)` because the item's values may be less than the columns, but never greater
                 columns[index]: item_values[index] for index in range(len(item_values))
             }
             
@@ -253,7 +250,9 @@ if __name__ == '__main__':
     table.add_column(column='id', dtype=int, anchor=tk.E, minwidth=20, width=50)
     table.add_column(column='name', anchor=tk.W, width=100)
     table.add_column(column='age', anchor=tk.E, width=50)
-    table.update_table()
+    table.func_get_data(
+        lambda: data
+    )
     table.grid(column=0, row=0, columnspan=3, padx=10, pady=10, sticky='nsew')
 
     def print_selected():
@@ -262,17 +261,14 @@ if __name__ == '__main__':
     def print_all():
         print(table.get_items_data())
 
-    def update_data():
-        new_data = [
+    tk.Button(root, text="Print Selected", command=print_selected, padx=10, pady=10).grid(column=0, row=1)
+    tk.Button(root, text="Print All Items", command=print_all, padx=10, pady=10).grid(column=1, row=1)
+    tk.Button(root, text="Update data", command= lambda event=None: table.func_get_data(
+        lambda: [
             {'id': 100, 'name': 'AAA', 'age': 0},
             {'id': 101, 'name': 'BBB', 'age': 1},
             {'id': 102, 'name': 'CCC', 'age': 2},
-        ]
-        table.update_table(data=new_data)
-
-    tk.Button(root, text="Print Selected", command=print_selected, padx=10, pady=10).grid(column=0, row=1)
-    tk.Button(root, text="Print All Items", command=print_all, padx=10, pady=10).grid(column=1, row=1)
-    tk.Button(root, text="Update data", command=update_data, padx=10, pady=10).grid(column=2, row=1)
+        ]),padx=10, pady=10).grid(column=2, row=1)  
     
     root.update_idletasks()
     root.geometry(f"+{root.winfo_screenwidth()//2-root.winfo_width()//2}+{root.winfo_screenheight()//2-root.winfo_height()//2}")

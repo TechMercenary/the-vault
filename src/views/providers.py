@@ -3,13 +3,13 @@ from database.sqlite_handler import get_session
 from database.models import Provider
 from tkinter import messagebox
 from sqlalchemy import func
-from custom_widgets.table import CustomTable
-from custom_widgets.toplevel import CustomTopLvel
+from custom.custom_table import CustomTable
+from custom.toplevel import CustomTopLvel
 import tkinter as tk
 import tkinter.ttk as ttk
 from config import logger
 
-
+# TODO: use new templates
 class ProviderListView(CustomTopLvel):
     """A view for the provider."""
 

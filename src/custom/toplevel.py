@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 
-
+# TODO: Deprecare this class and use the one from templates_view.py
 class CustomTopLvel(tk.Toplevel):
     """A custom toplevel window."""
 

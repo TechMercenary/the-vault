@@ -3,8 +3,8 @@ from database.sqlite_handler import get_session
 from database.models import AccountGroup, Account, Currency
 from sqlalchemy import func
 from tkinter import messagebox
-from custom_widgets.table import CustomTable
-from custom_widgets.toplevel import CustomTopLvel
+from custom.custom_table import CustomTable
+from custom.toplevel import CustomTopLvel
 from config import logger, AccountTypeEnum, MAP_ACCOUNT_TYPE_TO_SIDE, LOCAL_TIME_ZONE
 from views.account_groups import AccountGroupEditView, AccountGroupNewView
 import tkinter as tk
@@ -12,11 +12,12 @@ import tkinter.ttk as ttk
 import pendulum
 
 
+# TODO: See if it is possible to use the new templates
 class AccountTable(CustomTable):
     """ Adapts the CustomTable to allow showing the groups and accounts in as a dependency tree."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, selectmode: str = "extended"):
-        super().__init__(parent, selectmode=selectmode, first_col_width=200, tree_expanded=True)
+        super().__init__(parent, selectmode=selectmode, tree_root_col_width=200, tree_expanded=True)
 
     def insert_data(self):
         """
