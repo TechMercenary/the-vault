@@ -255,7 +255,7 @@ class FrameInput(ttk.Frame):
         self._set_label(key, text)
         variable = PendulumVar(format=format)
         widget = TimestampEntry(
-            self,
+            parent=self,
             format=format,
             default_now=default_now,
             textvariable=variable,

@@ -19,19 +19,17 @@ class TimestampEntry(ttk.Entry):
             
         self._format = format
         
-        if value:=value or (pendulum.now() if default_now else None):
+        if value:=value or (pendulum.now().format(format) if default_now else None):
             self.insert(tk.END, value)
 
         self.bind('<FocusOut>', self._parse_input)
-        self._parse_input()
-    
+   
     def _parse_input(self, event=None):
         input_str = self.get().strip()
-
         with contextlib.suppress(ValueError):
-            new_value = pendulum.parse(input_str).format(self._format)
+            new_value = pendulum.parser.parse(input_str).format(self._format)
             self.delete(0, tk.END)
-            self.insert(new_value)
+            self.insert(0, new_value)
 
 
 class KeyValueCombobox(ttk.Combobox):
