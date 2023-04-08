@@ -223,55 +223,5 @@ class CustomTable(tk.Frame):
 
 
 if __name__ == '__main__':
-    # Example of use
-    
-    root = tk.Tk()
-    root.title("Test Table")
-
-    data = [
-        {'id': 1, 'name': 'John', 'age': 30},
-        {'id': 2, 'name': 'Jane', 'age': 25},
-        {'id': 3, 'name': 'Bob', 'age': 40},
-        {'id': 4, 'name': 'Alice', 'age': 28},
-        {'id': 5, 'name': 'David', 'age': 33},
-        {'id': 6, 'name': 'Emma', 'age': 22},
-        {'id': 7, 'name': 'Frank', 'age': 45},
-        {'id': 8, 'name': 'Grace', 'age': 27},
-        {'id': 9, 'name': 'Henry', 'age': 32},
-        {'id': 10, 'name': 'Isabella', 'age': 29},
-        {'id': 11, 'name': 'Jack', 'age': 38},
-        {'id': 12, 'name': 'Karen', 'age': 24},
-        {'id': 13, 'name': 'Leo', 'age': 31},
-        {'id': 14, 'name': 'Megan', 'age': 26},
-        {'id': 15, 'name': 'Nathan', 'age': 36}
-    ]
-
-    table = CustomTable(root, selectmode="extended", data=data)
-    table.add_column(column='id', dtype=int, anchor=tk.E, minwidth=20, width=50)
-    table.add_column(column='name', anchor=tk.W, width=100)
-    table.add_column(column='age', anchor=tk.E, width=50)
-    table.func_get_data(
-        lambda: data
-    )
-    table.grid(column=0, row=0, columnspan=3, padx=10, pady=10, sticky='nsew')
-
-    def print_selected():
-        print(table.get_items_data(selected_only=True))
-
-    def print_all():
-        print(table.get_items_data())
-
-    tk.Button(root, text="Print Selected", command=print_selected, padx=10, pady=10).grid(column=0, row=1)
-    tk.Button(root, text="Print All Items", command=print_all, padx=10, pady=10).grid(column=1, row=1)
-    tk.Button(root, text="Update data", command= lambda event=None: table.func_get_data(
-        lambda: [
-            {'id': 100, 'name': 'AAA', 'age': 0},
-            {'id': 101, 'name': 'BBB', 'age': 1},
-            {'id': 102, 'name': 'CCC', 'age': 2},
-        ]),padx=10, pady=10).grid(column=2, row=1)  
-    
-    root.update_idletasks()
-    root.geometry(f"+{root.winfo_screenwidth()//2-root.winfo_width()//2}+{root.winfo_screenheight()//2-root.winfo_height()//2}")
-
-    root.mainloop()
+    pass
     

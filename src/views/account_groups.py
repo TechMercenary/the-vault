@@ -1,7 +1,9 @@
 from database.sqlite_handler import get_session
 from database.models import AccountGroup, AccountGroup
+from database.common_queries import get_account_groups_values
 from tkinter import messagebox
 from custom.templates_view import TemplateNewEdit, FrameInput
+
 import tkinter as tk
 
 
@@ -11,15 +13,10 @@ class AccountGroupNewView(TemplateNewEdit):
     def __init__(self, parent: tk.Toplevel | tk.Tk):
         super().__init__(parent, title="New Account Group")
 
-    def get_account_groups_values(self) -> list[dict]:
-        with get_session() as session:
-            account_groups = session.query(AccountGroup).order_by(AccountGroup.name).all()
-            return {group.id: group.alias for group in account_groups}
-
     def set_inputs(self, input_frame: FrameInput):
         input_frame.add_input_combobox(
             key="parent",
-            func_get_values=self.get_account_groups_values,
+            func_get_values=get_account_groups_values,
             enable_empty_option=True,
             state="readonly",
             width=30,
@@ -110,7 +107,6 @@ class AccountGroupEditView(TemplateNewEdit):
     
 
     def on_accept(self, values: list[dict]):
-        print(values)
         with get_session() as session:
             self.account_group.name=values['name']
             self.account_group.description=values['description']
