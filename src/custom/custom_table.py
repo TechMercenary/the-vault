@@ -190,9 +190,10 @@ class CustomTable(tk.Frame):
             self._table.insert('', 'end', values=values)
             
 
-    def refresh(self) -> None:
+    def refresh(self, event=None) -> None:
         """
             Update the table's data.
+            Do not remove the `event` argument, it is used to bind the function to events.
         """
         self._delete_all()
         self._insert_data()

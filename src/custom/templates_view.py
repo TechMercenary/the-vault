@@ -34,8 +34,8 @@ class CustomTopLevel(tk.Toplevel, ABC):
                 parent: The parent window
                 title: The title of the window
                 resizable: If the window is resizable
-                top_buttons_config: A dictionary with the button's label as key and the command as value
-                fotter_buttons_config: A dictionary with the button's label as key and the command as value
+                top_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
+                fotter_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
         """
 
         super().__init__(parent)
@@ -51,9 +51,9 @@ class CustomTopLevel(tk.Toplevel, ABC):
         self._footer_buttons_config = footer_buttons_config
 
         self._set_contents()
-        self.bind('<Escape>', lambda event: self.destroy())
+        self.bind('<Escape>', self.destroy)
 
-    def destroy(self):
+    def destroy(self, event=None):
         """ Destroy the window and focus on the parent. """
         super().destroy()
         self.parent.focus()
@@ -78,18 +78,21 @@ class CustomTopLevel(tk.Toplevel, ABC):
         self._root_frame.grid(column=0, padx=3, pady=3, ipadx=3, ipady=3, row=0)
 
     def _set_row_buttons(self, row: int, buttons_config : dict):
-        """ Set the buttons in a row. """
+        """ 
+            Set the buttons in a row. 
+            buttons_config: A dictionary with the button's label as key, and the command (function callable) as value
+        """
         
         frame = ttk.Frame(self._root_frame)
         frame.grid(column=0, row=row, sticky="ew")
         frame.grid_anchor("center")
-        
+
         # Create the buttons 
         for button_column, button_key in enumerate(buttons_config.keys()):
             ttk.Button(
                 frame,
                 text=button_key,
-                command=lambda event: buttons_config[button_key]()
+                command=buttons_config[button_key]
             ).grid(column=button_column, row=0, sticky="ew", padx=5, pady=5)
 
 
@@ -138,12 +141,12 @@ class TemplateListView(CustomTopLevel, ABC):
         self._set_table()
 
         center_window(window=self, context_window=self.parent)
-        self.bind("<<EventUpdateTable>>", lambda event: self.table.refresh())
+        self.bind("<<EventUpdateTable>>", self.table.refresh)
         
-        self.bind('<Delete>', lambda event: self._on_delete)
-        self.bind('<F2>', lambda event: self._on_edit)
-        self.bind('<Double-1>', lambda event: self._on_edit)
-        self.bind('<Return>', lambda event: self._on_edit)
+        self.bind('<Delete>', self._on_delete)
+        self.bind('<F2>', self._on_edit)
+        self.bind('<Double-1>', self._on_edit)
+        self.bind('<Return>', self._on_edit)
 
     @abstractmethod
     def get_data(self):
@@ -160,17 +163,17 @@ class TemplateListView(CustomTopLevel, ABC):
         """
         raise NotImplementedError
 
-    def _on_add(self):
+    def _on_add(self, event=None):
         logger.debug('Add button clicked')
         self.__new_view__(self)
 
-    def _on_edit(self):
+    def _on_edit(self, event=None):
         logger.debug('Edit button clicked')
 
         if selected_items:=self.table.get_items_data(selected_only=True):
             self.__edit_view__(self, selected_items[0]['id'])
 
-    def _on_delete(self):
+    def _on_delete(self, event=None):
         logger.debug('Delete button clicked')
         
         if (selected_items:=self.table.get_items_data(selected_only=True)) \
@@ -270,6 +273,13 @@ class FrameInput(ttk.Frame):
             values[key] = value
         return values
 
+    def _validate_state(self, state: str):
+        assert state in {
+            'normal',
+            'readonly',
+        }, "The state must be one of ['normal', 'readonly']"
+
+
     def add_input_entry(
         self,
         key: str,
@@ -283,10 +293,7 @@ class FrameInput(ttk.Frame):
             :param width: The width of the input.
             :param state: One of ['normal', 'readonly'].
         """
-        assert state in {
-            'normal',
-            'readonly',
-        }, "The state must be one of ['normal', 'readonly']"
+        self._validate_state(state=state)
         self._set_label(text=text or key.replace("_", ' ').title())
         variable = tk.StringVar()
         widget = ttk.Entry(self, textvariable=variable, width=width, state=state)
@@ -314,10 +321,7 @@ class FrameInput(ttk.Frame):
                 state: One of ['normal', 'readonly'].
         """
 
-        assert state in {
-            'normal',
-            'readonly',
-        }, "The state must be one of ['normal', 'readonly']"
+        self._validate_state(state=state)
         self._set_label(text=text or key.replace("_", ' ').title())
         variable = tk.StringVar()
         widget = KeyValueCombobox(
@@ -352,10 +356,7 @@ class FrameInput(ttk.Frame):
                 state: One of ['normal', 'readonly'].
         """
         
-        assert state in {
-            'normal',
-            'readonly',
-        }, "The state must be one of ['normal', 'readonly']"
+        self._validate_state(state=state)
         self._set_label(text=text or key.replace("_", ' ').title())
         variable = DateTimeVar(format=format)
         widget = TimestampEntry(
@@ -387,7 +388,7 @@ class TemplateNewEdit(CustomTopLevel, ABC):
     def __init__(self, parent: tk.Toplevel | tk.Tk, title: str) -> None:
         
         footer_buttons_config = {
-            "Accept": lambda event: self._on_accept_wrapper(),
+            "Accept": self._on_accept_wrapper,
             "Cancel": self.destroy,
         }
         
@@ -403,7 +404,7 @@ class TemplateNewEdit(CustomTopLevel, ABC):
         self.input_frame.grid(column=0, row=0)
 
         center_window(window=self, context_window=self.parent)
-        self.bind("<Return>", lambda event: self._on_accept_wrapper())
+        self.bind("<Return>", self._on_accept_wrapper)
     
     @abstractmethod
     def set_inputs(self, input_frame: FrameInput) -> None:
@@ -414,7 +415,7 @@ class TemplateNewEdit(CustomTopLevel, ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def on_accept(self, values: list[dict]) -> None:
+    def on_accept(self, event=None, values: list[dict] = list) -> None:
         """
             This code will be executed when the user clicks on "Accept".
             The values are being passed from `get_validated_values`.
@@ -429,7 +430,7 @@ class TemplateNewEdit(CustomTopLevel, ABC):
         """
         raise NotImplementedError
     
-    def _on_accept_wrapper(self) -> None:
+    def _on_accept_wrapper(self, event=None) -> None:
         """
             Wrapper for the `on_accept` method.
             - It will call `get_validated_values`, and `on_accept` if the values are valid.

@@ -8,48 +8,29 @@ from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
 import tkinter as tk
 
 
-class CurrencyNewView(TemplateNewEdit):
-    """A view for creating a new currency."""
+class CurrencyChangeView(TemplateNewEdit):
+    """A view for creating and editing a currency."""
 
-    def __init__(self, parent: tk.Toplevel | tk.Tk):
-        super().__init__(parent, title="New Currency")
+    def __init__(self, parent: tk.Toplevel | tk.Tk, currency_id: int=None):
         
-    def set_inputs(self, input_frame: FrameInput):
-        input_frame.add_input_entry(key="code", width=5)
-        input_frame.add_input_entry(key="description", width=30)
+        if currency_id:
+            with get_session() as session:
+                if not (currency:=session.query(Currency).filter(Currency.id == currency_id).first()):
+                    messagebox.showerror("Error", f"Currency {currency_id} not found")
+                    self.parent.focus()
+                    self.destroy()
+            self.currency = currency
 
-    def get_validated_values(self, input_values: dict) -> dict:
-        if not input_values["code"]:
-            raise ValueError("Code is required")
-        return input_values
-    
-    def on_accept(self, values: list[dict]):
-        with get_session() as session:
-            session.add(Currency(
-                code=values['code'],
-                description=values['description']
-            ))
-            session.commit()
+            super().__init__(parent, title="Edit Currency") 
+            
+            self.input_frame.set_values({
+                "code": self.currency.code,
+                "description": self.currency.description
+            })
+            
+        else:
+            super().__init__(parent, title="New Currency") 
 
-
-class CurrencyEditView(TemplateNewEdit):
-    """A view for editing a currency."""
-
-    def __init__(self, parent: tk.Toplevel | tk.Tk, currency_id: int):
-        
-        with get_session() as session:
-            if not (currency:=session.query(Currency).filter(Currency.id == currency_id).first()):
-                messagebox.showerror("Error", f"Currency {currency_id} not found")
-                self.parent.focus()
-                self.destroy()
-
-        super().__init__(parent, title="Edit Currency") 
-
-        self.currency = currency
-        self.input_frame.set_values({
-            "code": self.currency.code,
-            "description": self.currency.description
-        })
         
     def set_inputs(self, input_frame: FrameInput):
         input_frame.add_input_entry(key="code", width=5)
@@ -62,16 +43,24 @@ class CurrencyEditView(TemplateNewEdit):
         
     def on_accept(self, values: list[dict]):
         with get_session() as session:
-            self.currency.code = values['code']
-            self.currency.description = values['description']
-            session.add(self.currency)
-            session.commit()
+            if getattr(self, 'currency', None):
+                self.currency.code = values['code']
+                self.currency.description = values['description']
+                currency = self.currency
+            else:
+                currency = Currency(
+                    code=values['code'],
+                    description=values['description']
+                )
+            session.add(currency)
+            session.commit()            
+
 
 
 class CurrencyListView(TemplateListView):
     __model__ = Currency
-    __edit_view__ = CurrencyEditView
-    __new_view__ = CurrencyNewView
+    __edit_view__ = CurrencyChangeView
+    __new_view__ = CurrencyChangeView
     
     def __init__(self, parent: tk.Toplevel | tk.Tk):
         super().__init__(parent, title='Currencies')

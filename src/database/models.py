@@ -3,7 +3,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing_extensions import Annotated
 from decimal import Decimal
-from config import NormalSideEnum, AccountTypeEnum
 
 # type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
 # str_30 = Annotated[str, 30]
@@ -48,6 +47,18 @@ class AccountGroup(Base):
         return self.name
 
 
+class AccountType(Base):
+    """
+        normal_side: The normal side of the account type. It must be either "DEBIT" or "CREDIT"
+    """
+    __tablename__ = "account_type"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    normal_side: Mapped[str] = mapped_column(nullable=False)
+    
+    accounts: Mapped[list["Account"]] = relationship(back_populates="account_type")
+
+
 class Account(Base):
     """
     Account model
@@ -64,10 +75,11 @@ class Account(Base):
     opened_at: Mapped[str]
     closed_at: Mapped[str|None]
     account_group_id: Mapped[int] = mapped_column(ForeignKey("account_group.id"))
-    account_type: Mapped[AccountTypeEnum]
+    account_type_id: Mapped[int] = mapped_column(ForeignKey("account_type.id"))
     
     currency: Mapped["Currency"] = relationship("Currency")
     account_group: Mapped["AccountGroup"] = relationship(back_populates="accounts")
+    account_type: Mapped["AccountType"] = relationship("AccountType", back_populates="accounts")
     
     @property
     def alias(self):
