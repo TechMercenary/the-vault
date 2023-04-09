@@ -5,13 +5,21 @@ from custom.custom_table import CustomTable
 from config import logger
 from database.models import Base
 from custom.custom_widgets import TimestampEntry, KeyValueCombobox
-from custom.custom_variables import PendulumVar
+from custom.custom_variables import DateTimeVar
 import tkinter as tk
 import tkinter.ttk as ttk
+from abc import ABC, abstractmethod
 
-
-class CustomTopLevel(tk.Toplevel):
-    """A custom toplevel window."""
+class CustomTopLevel(tk.Toplevel, ABC):
+    """ A custom toplevel window. 
+    
+        Features:
+        
+            - Autofocus on creation
+            - Configurable top and footer buttons
+            - Destoy on escape key
+            - Body frame to add additional widgets
+    """
 
     def __init__(
         self, 
@@ -21,6 +29,14 @@ class CustomTopLevel(tk.Toplevel):
         top_buttons_config: dict = None,
         footer_buttons_config: dict = None,
     ):
+        """ 
+            Args:
+                parent: The parent window
+                title: The title of the window
+                resizable: If the window is resizable
+                top_buttons_config: A dictionary with the button's label as key and the command as value
+                fotter_buttons_config: A dictionary with the button's label as key and the command as value
+        """
 
         super().__init__(parent)
         # Tkinter variables
@@ -35,13 +51,15 @@ class CustomTopLevel(tk.Toplevel):
         self._footer_buttons_config = footer_buttons_config
 
         self._set_contents()
-        self.bind('<Escape>', self.destroy)
+        self.bind('<Escape>', lambda event: self.destroy())
 
-    def destroy(self, event=None):
+    def destroy(self):
+        """ Destroy the window and focus on the parent. """
         super().destroy()
         self.parent.focus()
 
     def _set_contents(self):
+        """ Set the top and footer buttons. """
         ##### Frames
         self._root_frame = ttk.Frame(self)
 
@@ -60,37 +78,57 @@ class CustomTopLevel(tk.Toplevel):
         self._root_frame.grid(column=0, padx=3, pady=3, ipadx=3, ipady=3, row=0)
 
     def _set_row_buttons(self, row: int, buttons_config : dict):
+        """ Set the buttons in a row. """
         
         frame = ttk.Frame(self._root_frame)
         frame.grid(column=0, row=row, sticky="ew")
         frame.grid_anchor("center")
         
+        # Create the buttons 
         for button_column, button_key in enumerate(buttons_config.keys()):
             ttk.Button(
                 frame,
                 text=button_key,
-                command=buttons_config[button_key]
+                command=lambda event: buttons_config[button_key]()
             ).grid(column=button_column, row=0, sticky="ew", padx=5, pady=5)
 
 
-class TemplateListView(CustomTopLevel):
-    """ A template for a list view. """
+class TemplateListView(CustomTopLevel, ABC):
+    """ A template for a list view. 
+    
+        Features:
+            - Add, edit and delete buttons on the top
+            - Close button on the footer
+            - Auto center on creation
+            - Auto refresh table's data on <<EventUpdateTable>> (on delete, on edit, on add)
+            - Key bindings:
+                - Delete: Delete the selected row
+                - F2: Edit the selected row
+                - Double click: Edit the selected row
+                - Enter: Edit the selected row
+            - Automatic item Add, item edit, and item delete bindings and view calls.
+            - Configurations:
+                - __model__: The database model
+                - __edit_view__: The edit view
+                - __new_view__: The new view
+                - `get_data`: A function that returns the data to be displayed on the table
+                - `add_columns`: A function that defines which columns are shown in the table
+    """
     
     __model__: Base = None
     __edit_view__: CustomTopLevel = None
     __new_view__: CustomTopLevel = None
     
-    def __init__(
-        self, parent: tk.Toplevel | tk.Tk, title: str):
+    def __init__(self, parent: tk.Toplevel | tk.Tk, title: str):
         
         super().__init__(
             parent=parent,
             title=title,
             resizable=True,
             top_buttons_config={
-                'Add': self.btn_add_command,
-                'Edit': self.btn_edit_command,
-                'Delete': self.btn_delete_command,
+                'Add': self._on_add,
+                'Edit': self._on_edit,
+                'Delete': self._on_delete,
             },
             footer_buttons_config={
                 'Close': self.destroy,
@@ -100,30 +138,39 @@ class TemplateListView(CustomTopLevel):
         self._set_table()
 
         center_window(window=self, context_window=self.parent)
-        self.bind("<<EventUpdateTable>>", self.table.refresh)
+        self.bind("<<EventUpdateTable>>", lambda event: self.table.refresh())
         
-        self.bind('<Delete>', self.btn_delete_command)
-        self.bind('<F2>', self.btn_edit_command)
-        self.bind('<Double-1>', self.btn_edit_command)
-        self.bind('<Return>', self.btn_edit_command)
+        self.bind('<Delete>', lambda event: self._on_delete)
+        self.bind('<F2>', lambda event: self._on_edit)
+        self.bind('<Double-1>', lambda event: self._on_edit)
+        self.bind('<Return>', lambda event: self._on_edit)
 
+    @abstractmethod
     def get_data(self):
+        """ 
+            Get the data to be displayed on the table.
+            It is used to configure the `func_get_data` parameter of the `CustomTable` class.
+        """
         raise NotImplementedError
 
+    @abstractmethod
     def add_columns(self, table: CustomTable):
+        """
+            Add the columns to the table. See `CustomTable.add_column` for more information.
+        """
         raise NotImplementedError
 
-    def btn_add_command(self, event=None):
+    def _on_add(self):
         logger.debug('Add button clicked')
         self.__new_view__(self)
 
-    def btn_edit_command(self, event=None):
+    def _on_edit(self):
         logger.debug('Edit button clicked')
 
         if selected_items:=self.table.get_items_data(selected_only=True):
             self.__edit_view__(self, selected_items[0]['id'])
 
-    def btn_delete_command(self, event=None):
+    def _on_delete(self):
         logger.debug('Delete button clicked')
         
         if (selected_items:=self.table.get_items_data(selected_only=True)) \
@@ -134,6 +181,7 @@ class TemplateListView(CustomTopLevel):
                 messagebox.showerror("Error", str(e))
    
     def _db_delete_item(self, ids: list):
+        """ Delete the items from the database using the `id` field"""
         with get_session() as session:
             session.query(self.__model__).filter(self.__model__.id.in_(ids)).delete(synchronize_session=False)
             session.commit()
@@ -148,6 +196,7 @@ class TemplateListView(CustomTopLevel):
 
 
 class FrameInput(ttk.Frame):
+    """ A custom frame to easily create input forms."""
     
     def __init__(self, parent, padding=5, *args, **kwargs ) -> None:
         super().__init__(parent, padding=padding, *args, **kwargs)
@@ -156,7 +205,8 @@ class FrameInput(ttk.Frame):
         self._input_widgets = {}
         self._input_rows = 0
 
-    def set_values(self, values: dict[str: tk.StringVar| PendulumVar] = None) -> None:
+    def set_values(self, values: dict[str: str|int|float] = None) -> None:
+        """ Set the values of the input widgets using a dictionary."""
         for key, value in values.items():
             if key in self._input_variables.keys():
                 self._input_variables[key].set(value)
@@ -166,29 +216,49 @@ class FrameInput(ttk.Frame):
                 self.destroy()
 
     def get_input_widgets(self) -> list[dict[str: tk.Widget]]:
+        """
+            Get the input widgets. 
+            Returns a list of dictionaries with the key and the widget.
+        """
         return [{key: self._input_widgets[key] for key in self._input_widgets.keys()}]
 
     def set_binding(self, key: str, bindings: dict) -> None:
         """Set bindings to the input widget.
-            :param key: The key of the input.
-            :param bindings: A dictionary with the bindings. {'event': function}
+            :key: The key of the input.
+            :bindings: A dictionary with the bindings. {'event': function}
         """
         for event, func in bindings.items():
             self._input_widgets[key].bind(event, func)
        
     def _set_widget(self, key: str, widget: tk.Widget, variable: tk.StringVar) -> None:
+        """Set the widget and the variable to the input widgets and variables dictionaries."""
+        
         widget.grid(column=1, row=self._get_inputs_qty(), sticky="w")
         self._input_widgets[key] = widget
         self._input_variables[key] = variable
+        
     
     def _get_inputs_qty(self) -> int:
+        """ Get the amount of inputs."""
         return len(self._input_variables)
 
-    def _set_label(self, key: str, text: str = None) -> None:
-        ttk.Label(self, text=text or key.replace("_",' ').title())\
-            .grid(column=0, row=self._get_inputs_qty(), padx=5, pady=3, sticky="w")
+
+    def _set_label(self, text: str) -> None:
+        """ 
+            Create a ttk.Label 
+            
+            :param text: The text of the label.
+        """
+        ttk.Label(self, text=text).grid(column=0, row=self._get_inputs_qty(), padx=5, pady=3, sticky="w")
 
     def get_values(self) -> list[dict[str: str|int|float|bool]]:
+        """ 
+            Get a dictionary with the values of the input widgets.
+            
+            For each key in the input widgets dictionary it will return the value of the `variable` associated with the widget.
+                In case the widget is a `KeyValueCombobox` it will return the value of the widget itself,
+                because it is not a simple string but a dictionary.
+        """
         
         values = {}
         for key in self._input_variables.keys():
@@ -200,7 +270,6 @@ class FrameInput(ttk.Frame):
             values[key] = value
         return values
 
-        
     def add_input_entry(
         self,
         key: str,
@@ -214,7 +283,11 @@ class FrameInput(ttk.Frame):
             :param width: The width of the input.
             :param state: One of ['normal', 'readonly'].
         """
-        self._set_label(key, text)
+        assert state in {
+            'normal',
+            'readonly',
+        }, "The state must be one of ['normal', 'readonly']"
+        self._set_label(text=text or key.replace("_", ' ').title())
         variable = tk.StringVar()
         widget = ttk.Entry(self, textvariable=variable, width=width, state=state)
         self._set_widget(key=key, widget=widget, variable=variable)
@@ -226,17 +299,30 @@ class FrameInput(ttk.Frame):
         func_get_values: callable,
         text: str = None,
         width: int = 100,
-        values: dict = None,
         enable_empty_option: bool = False,
         state="readonly"
     ) -> None:
+        """
+            Add a combobox input to the view.
+            args:
+                key: The key of the input.
+                func_get_values: A function to get the values of the combobox. 
+                    It must return a dictionary where the key is the `id` in the database.
+                text: The text to display.
+                width: The width of the input.
+                enable_empty_option: If True it will add the option {None: '<Empty>'} at the begining.
+                state: One of ['normal', 'readonly'].
+        """
 
-        self._set_label(key, text)
+        assert state in {
+            'normal',
+            'readonly',
+        }, "The state must be one of ['normal', 'readonly']"
+        self._set_label(text=text or key.replace("_", ' ').title())
         variable = tk.StringVar()
         widget = KeyValueCombobox(
             self,
             func_get_values=func_get_values,
-            values=values,
             enable_empty_option=enable_empty_option,
             textvariable=variable,
             width=width,
@@ -244,16 +330,34 @@ class FrameInput(ttk.Frame):
         )
         self._set_widget(key=key, widget=widget, variable=variable)
 
+
     def add_input_datetime(
         self,
         key: str,
         text: str = None,
         width: int = 100,
         format: str ="YYYY-MM-DD HH:mm:ss",
-        default_now: bool = False
+        default_now: bool = False,
+        state: str = "normal"
     ) -> None:
-        self._set_label(key, text)
-        variable = PendulumVar(format=format)
+        """ 
+            Add a datetime input to the view.
+            
+            args:
+                key: The key of the input.
+                text: The text to display.
+                width: The width of the input.
+                format: The format of the datetime. Used to validate and extract the data as `str`.
+                default_now: If True it will set the default value to the current datetime.
+                state: One of ['normal', 'readonly'].
+        """
+        
+        assert state in {
+            'normal',
+            'readonly',
+        }, "The state must be one of ['normal', 'readonly']"
+        self._set_label(text=text or key.replace("_", ' ').title())
+        variable = DateTimeVar(format=format)
         widget = TimestampEntry(
             parent=self,
             format=format,
@@ -264,13 +368,27 @@ class FrameInput(ttk.Frame):
         self._set_widget(key=key, widget=widget, variable=variable)
 
 
-class TemplateNewEdit(CustomTopLevel):
+class TemplateNewEdit(CustomTopLevel, ABC):
+    """
+        Template for the new and edit windows.
 
-    def __init__(self, parent: tk.Toplevel | tk.Tk, title: str):
+        Needs to implement:
+            - `set_inputs` to configure the inputs.
+            - `on_accept` to configure the action when the user clicks on "Accept".
+            - `get_validated_values` to validate the values of the inputs, it must return a dictionary with the values.
+        
+        features:
+            - It has a body frame `input_frame` (an instance of FrameInput) to configure the inputs.
+            - It has a footer with the buttons "Accept" and "Cancel".
+            - Accept: It will call `get_validated_values`, and `on_accept` if the values are valid.
+            - The "Accept" and "Cancel" button are already binded
+            - The "Accept" button is binded to the <Return> key.
+    """
+    def __init__(self, parent: tk.Toplevel | tk.Tk, title: str) -> None:
         
         footer_buttons_config = {
-            "Aceptar": self.btn_accept,
-            "Cancelar": self.destroy,
+            "Accept": lambda event: self._on_accept_wrapper(),
+            "Cancel": self.destroy,
         }
         
         super().__init__(
@@ -285,18 +403,39 @@ class TemplateNewEdit(CustomTopLevel):
         self.input_frame.grid(column=0, row=0)
 
         center_window(window=self, context_window=self.parent)
-        self.bind("<Return>", self.btn_accept)
+        self.bind("<Return>", lambda event: self._on_accept_wrapper())
     
-    def set_inputs(self, input_frame: FrameInput):
+    @abstractmethod
+    def set_inputs(self, input_frame: FrameInput) -> None:
+        """
+            Configure the inputs of the window. 
+            See `FrameInput` for more information.
+        """
         raise NotImplementedError
     
-    def on_accept(self, values: list[dict]):
+    @abstractmethod
+    def on_accept(self, values: list[dict]) -> None:
+        """
+            This code will be executed when the user clicks on "Accept".
+            The values are being passed from `get_validated_values`.
+        """
         raise NotImplementedError
     
+    @abstractmethod
     def get_validated_values(self, input_values: dict) -> dict:
+        """
+            Validate the values of the inputs, it must return a dictionary with the values. 
+            The values will be passed to `on_accept`.
+        """
         raise NotImplementedError
     
-    def btn_accept(self, event=None):
+    def _on_accept_wrapper(self) -> None:
+        """
+            Wrapper for the `on_accept` method.
+            - It will call `get_validated_values`, and `on_accept` if the values are valid.
+            - It will show an error message if the values are not valid.
+            - It generates the event "<<EventUpdateTable>>" used by TemplateListView to update the table.
+        """
         try:
             values = self.get_validated_values(input_values=self.input_frame.get_values())
             self.on_accept(values=values)
@@ -306,23 +445,3 @@ class TemplateNewEdit(CustomTopLevel):
         except Exception as e:
             messagebox.showerror("Error", str(e))
             self.focus()
-
-
-if __name__ == '__main__':
-    from utils import toplevel_set_active
-    
-    root = tk.Tk()
-    
-    toplevel = CustomTopLevel(parent=root)
-    
-    frame = FrameInput(toplevel)
-    frame.grid(column=0, row=0, sticky="news")
-    frame.add_input_entry(key="code", width=10)
-    frame.add_input_entry(key="description", width=30)
-    
-    toplevel_set_active(window=toplevel)
-    center_window(window=root, context_window=None)
-    center_window(window=toplevel, context_window=root)
-    
-    root.mainloop()
-
