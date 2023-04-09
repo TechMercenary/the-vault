@@ -15,6 +15,9 @@ engine = create_engine(
 
 @event.listens_for(engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
+    """
+        This is used to enable foreign key constraints in SQLite.
+    """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
@@ -26,19 +29,6 @@ def get_session() -> Session:
     return Session(engine)
 
 
-if __name__ == "__main__":
-   
-    with get_session() as session:
-        import datetime; from pytz import timezone
-        account = Account(
-              name='test',
-              currency_id=1,
-              opened_at=timezone('America/Sao_Paulo').localize(datetime.datetime.now()),
-              account_group_id=1,
-              account_type='ASSET',
-       )
-        session.add(account)
-        session.commit()
 
 
     
