@@ -1,6 +1,6 @@
 
 from sqlalchemy import func
-from database.sqlite_handler import get_session, AccountGroup, Currency
+from database.sqlite_handler import get_session, AccountGroup, Currency, AccountType
 from config import AccountTypeEnum
 
 
@@ -12,12 +12,15 @@ def get_account_groups_values() -> list[dict[int: str]]:
         account_groups = session.query(AccountGroup).order_by(AccountGroup.name).all()
         return {group.id: group.alias for group in account_groups}
 
+
 def get_account_types_values() -> list[dict[str: str]]:
     """ 
         Returns the list of account_types as a dictionary of {id: value} pairs.
     """
-    return {key: key for key in AccountTypeEnum.__members__.keys()}
-
+    with get_session() as session:
+        account_types = session.query(AccountType).order_by(func.lower(AccountType.name)).all()
+        return {account_type.id: account_type.name for account_type in account_types}
+    
 
 def get_currencies_values() -> list[dict[int: str]]:
     """

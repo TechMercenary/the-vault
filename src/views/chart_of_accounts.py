@@ -61,7 +61,7 @@ class ChartOfAccountTable(CustomTable):
                         'currency': getattr(getattr(child, 'currency',{}),'code',''),
                         'opened_at': opened_at,
                         'closed_at': closed_at,
-                        'account_type': getattr(getattr(child, 'account_type', {}),'value',''),
+                        'account_type': getattr(getattr(child, 'account_type', {}),'name',''),
                     }.values()))
                     if isinstance(child, AccountGroup):
                         recursive_children(parent_iid=iid, parent_group=child)
@@ -97,7 +97,6 @@ class ChartOfAccountView(CustomTopLevel):
         self.set_table()
         center_window(window=self, context_window=self.parent)
         self.bind("<<EventUpdateTable>>", self.table.refresh)
-        
         self.bind('<Delete>', self.on_delete_item)
         self.bind('<F2>', self.on_edit_item)
         self.bind('<Double-1>', self.on_edit_item)
@@ -157,7 +156,6 @@ class ChartOfAccountView(CustomTopLevel):
         self.table.add_column(column='account_type', dtype=str, anchor=tk.W, minwidth=10, width=150)
         self.table.refresh()
         self.table.grid(column=0, row=0, sticky="nswe")
-    
 
 
 if __name__ == '__main__':

@@ -13,6 +13,8 @@ import pendulum
 
 
 # TODO: Add the accounting `side` and its update on the account type change
+# TODO: Fix the closed at field
+# TODO: Remove the closed at field on the New view
 class AccountNewView(TemplateNewEdit):
     """A view for creating a new account."""
 
@@ -55,7 +57,7 @@ class AccountNewView(TemplateNewEdit):
             'opened_at': input_values['opened_at'],
             'closed_at': input_values['closed_at'],
             'account_group_id': input_values['group']['key'],
-            'account_type': input_values['account_type']['key'],
+            'account_type_id': input_values['account_type']['key'],
         }
         
     def on_accept(self, values: list[dict]):
@@ -79,7 +81,7 @@ class AccountNewView(TemplateNewEdit):
                 opened_at=opened_at,
                 closed_at=closed_at,
                 account_group_id=values['account_group_id'],
-                account_type=values['account_type']
+                account_type_id=values['account_type_id']
             ))
             session.commit()
 
@@ -119,7 +121,7 @@ class AccountEditView(TemplateNewEdit):
                     "currency": self.account.currency.code,
                     "opened_at": opened_at,
                     "closed_at": closed_at,
-                    "account_type": self.account.account_type.value,
+                    "account_type": self.account.account_type.name,
                 })
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -163,7 +165,7 @@ class AccountEditView(TemplateNewEdit):
             'opened_at': input_values['opened_at'],
             'closed_at': input_values['closed_at'],
             'account_group_id': input_values['group']['key'],
-            'account_type': input_values['account_type']['key'],
+            'account_type_id': input_values['account_type']['key'],
         }
 
 
@@ -187,7 +189,7 @@ class AccountEditView(TemplateNewEdit):
             self.account.opened_at=opened_at
             self.account.closed_at=closed_at
             self.account.account_group_id=values['account_group_id']
-            self.account.account_type=values['account_type']
+            self.account.account_type_id=values['account_type_id']
 
             session.add(self.account)
             session.commit()
@@ -198,7 +200,7 @@ if __name__ == '__main__':
     from utils import toplevel_set_active
     
     root = tk.Tk()
-    toplevel = AccountNewView(root)
+    toplevel = AccountEditView(root, 1)
     center_window(window=root, context_window=None)
     toplevel_set_active(window=toplevel)
     center_window(window=toplevel, context_window=root)
