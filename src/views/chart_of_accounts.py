@@ -1,10 +1,10 @@
-from utils import center_window, datetime_timezone_converter
+from utils import center_window, get_datetime_from_db
 from database.sqlite_handler import get_session
 from database.models import AccountGroup, Account
 from sqlalchemy import func
 from tkinter import messagebox
 from custom.custom_table import CustomTable
-from config import LOCAL_TIME_ZONE
+from config_views import TABLE_COLUMN_WIDTH
 from views.account_groups import AccountGroupEditView, AccountGroupNewView
 from views.accounts import AccountNewView, AccountEditView
 from custom.templates_view import CustomTopLevel
@@ -39,32 +39,29 @@ class ChartOfAccountTable(CustomTable):
 
         with get_session() as session:
             def recursive_children(parent_iid: str, parent_group: AccountGroup):
-                children = sorted(parent_group.accounts, key=lambda c: c.name.lower())
-                children.extend(sorted(parent_group.children, key=lambda c: c.name.lower()))
                 
-                for child in children:
-                    
-                    opened_at = getattr(child, 'opened_at','')
-                    if opened_at:
-                        opened_at = datetime_timezone_converter(opened_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE)
-                    
-                    closed_at = getattr(child, 'closed_at','')
-                    if closed_at:
-                        closed_at = datetime_timezone_converter(closed_at, tz_from='UTC', tz_to=LOCAL_TIME_ZONE)
-                    
-                    
-                    iid = self._table.insert(parent_iid, 'end', text=child.name, values=tuple({
-                        'type': 'A' if isinstance(child, Account) else 'G',
-                        'id': child.id,
-                        'description': child.description,
-                        'account_number': getattr(child, 'account_number',''),
-                        'currency': getattr(getattr(child, 'currency',{}),'code',''),
-                        'opened_at': opened_at,
-                        'closed_at': closed_at,
-                        'account_type': getattr(getattr(child, 'account_type', {}),'name',''),
+                for account in sorted(parent_group.accounts, key=lambda c: c.name.lower()):
+                    if isinstance(account, Account):
+                        iid = self._table.insert(parent_iid, 'end', text=account.name, values=tuple({
+                            'type': 'A',
+                            'id': account.id,
+                            'description': account.description,
+                            'account_number': account.account_number,
+                            'currency': account.currency.code,
+                            'opened_at': get_datetime_from_db(account.opened_at),
+                            'closed_at': get_datetime_from_db(account.closed_at) if account.closed_at else '',
+                            'account_type': account.account_type.name,
+                            'normal_side': account.account_type.normal_side,
+                            'overdraft': f"$ {account.overdraft_limit:.2f}" if account.overdraft_limit else '',
+                        }.values()))
+                
+                for group in sorted(parent_group.children, key=lambda c: c.name.lower()):
+                    iid = self._table.insert(parent_iid, 'end', text=group.name, values=tuple({
+                        'type': 'G',
+                        'id': group.id,
+                        'description': group.description,
                     }.values()))
-                    if isinstance(child, AccountGroup):
-                        recursive_children(parent_iid=iid, parent_group=child)
+                    recursive_children(parent_iid=iid, parent_group=group)
 
             # Iterate through the root groups
             for group in session.query(AccountGroup).filter_by(parent_id=None).order_by(func.lower(AccountGroup.name)).all():
@@ -84,8 +81,8 @@ class ChartOfAccountView(CustomTopLevel):
             parent,
             title="Chart of Accounts",
             top_buttons_config={
-                'New Account': self.on_new_account,
-                'New Group': self.on_new_account_group,
+                'New Account': lambda : AccountNewView(parent=self),
+                'New Group': lambda : AccountGroupNewView(parent=self),
                 'Edit': self.on_edit_item,
                 'Delete': self.on_delete_item
             },
@@ -102,14 +99,6 @@ class ChartOfAccountView(CustomTopLevel):
         self.bind('<Double-1>', self.on_edit_item)
         self.bind('<Return>', self.on_edit_item)
         
-        
-    def on_new_account(self):
-        """Open the new account view."""
-        AccountNewView(parent=self)
-        
-    def on_new_account_group(self):
-        """Open the new account group view."""
-        AccountGroupNewView(parent=self)
         
     def on_edit_item(self, event=None):
         """Open the edit view for the first item in the selected items list."""
@@ -146,14 +135,16 @@ class ChartOfAccountView(CustomTopLevel):
         """Create the table"""
 
         self.table = ChartOfAccountTable(parent=self.body_frame)
-        self.table.add_column(column='type', text='Type', dtype=int, anchor=tk.E, minwidth=50, width=50)
-        self.table.add_column(column='id', text='Id', dtype=int, anchor=tk.E, minwidth=50, width=50)
-        self.table.add_column(column='description', dtype=str, anchor=tk.W, minwidth=10, width=200)
-        self.table.add_column(column='account_number', dtype=str, anchor=tk.W, width=200)
-        self.table.add_column(column='currency', dtype=str, anchor=tk.CENTER, minwidth=10, width=60)
-        self.table.add_column(column='opened_at', dtype=str, anchor=tk.CENTER, minwidth=10, width=120)
-        self.table.add_column(column='closed_at', dtype=str, anchor=tk.CENTER, minwidth=10, width=120)
-        self.table.add_column(column='account_type', dtype=str, anchor=tk.W, minwidth=10, width=150)
+        self.table.add_column(column='type', text='Type', dtype=int, anchor=tk.E, width=50)
+        self.table.add_column(column='id', text='Id', dtype=int, anchor=tk.E, width=TABLE_COLUMN_WIDTH['ID'])
+        self.table.add_column(column='description', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_DESCRIPTION'])
+        self.table.add_column(column='account_number', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_NUMBER'])
+        self.table.add_column(column='currency', dtype=str, anchor=tk.CENTER, width=TABLE_COLUMN_WIDTH['CURRENCY_CODE'])
+        self.table.add_column(column='opened_at', dtype=str, anchor=tk.CENTER, width=TABLE_COLUMN_WIDTH['TIMESTAMP'])
+        self.table.add_column(column='closed_at', dtype=str, anchor=tk.CENTER, width=TABLE_COLUMN_WIDTH['TIMESTAMP'])
+        self.table.add_column(column='account_type', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_TYPE_NAME'])
+        self.table.add_column(column='normal_side', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_TYPE_NORMAL_SIDE'])
+        self.table.add_column(column='overdraft', dtype=str, anchor=tk.E, width=TABLE_COLUMN_WIDTH['MONEY'])
         self.table.refresh()
         self.table.grid(column=0, row=0, sticky="nswe")
 

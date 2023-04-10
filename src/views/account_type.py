@@ -4,6 +4,7 @@ from tkinter import messagebox
 from sqlalchemy import func
 from custom.custom_table import CustomTable
 from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 
 import tkinter as tk
 
@@ -25,6 +26,7 @@ class AccountTypeChangeView(TemplateNewEdit):
             super().__init__(parent, title="Edit Account Type")
 
             self.input_frame.set_values({
+                "id": self.account_type.id,
                 "name": self.account_type.name,
                 "normal_side": self.account_type.normal_side
             })
@@ -33,8 +35,10 @@ class AccountTypeChangeView(TemplateNewEdit):
 
 
     def set_inputs(self, input_frame: FrameInput):
-        input_frame.add_input_entry(key="name", width=50)
-        input_frame.add_input_combobox(key="normal_side", width=10, func_get_values=lambda: {0: "DEBIT", 1: "CREDIT"})
+        if getattr(self, "account_type", None):
+            input_frame.add_input_label(key="id", text='Id', width=VIEW_WIDGET_WIDTH['ID'])
+        input_frame.add_input_entry(key="name", width=VIEW_WIDGET_WIDTH['ACCOUNT_TYPE_NAME'])
+        input_frame.add_input_combobox(key="normal_side", width=VIEW_WIDGET_WIDTH['ACCOUNT_TYPE_NORMAL_SIDE'], func_get_values=lambda: {0: "DEBIT", 1: "CREDIT"})
 
     
     def get_validated_values(self, input_values: dict) -> dict:
@@ -89,9 +93,9 @@ class AccountTypeListView(TemplateListView):
             ]
     
     def add_columns(self, table: CustomTable):
-        table.add_column(column='id', dtype=int, anchor=tk.E, minwidth=50, width=50)
-        table.add_column(column='name', dtype=str, anchor=tk.W, minwidth=75, width=200, is_sorted_asc=True)
-        table.add_column(column='normal_side', dtype=str, anchor=tk.W, minwidth=10, width=80)
+        table.add_column(column='id', dtype=int, anchor=tk.E, width=TABLE_COLUMN_WIDTH['ID'])
+        table.add_column(column='name', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_TYPE_NAME'], is_sorted_asc=True)
+        table.add_column(column='normal_side', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['ACCOUNT_TYPE_NORMAL_SIDE'])
 
 
 if __name__ == '__main__':

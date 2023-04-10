@@ -4,8 +4,8 @@ from tkinter import messagebox
 from custom.custom_table import CustomTable
 from config import logger
 from database.models import Base
-from custom.custom_widgets import TimestampEntry, KeyValueCombobox
-from custom.custom_variables import DateTimeVar
+from custom.custom_widgets import TimestampEntry, KeyValueCombobox, DecimalEntry
+from custom.custom_variables import DateTimeVar, DecimalVar
 import tkinter as tk
 import tkinter.ttk as ttk
 from abc import ABC, abstractmethod
@@ -273,31 +273,69 @@ class FrameInput(ttk.Frame):
             values[key] = value
         return values
 
-    def _validate_state(self, state: str):
-        assert state in {
-            'normal',
-            'readonly',
-        }, "The state must be one of ['normal', 'readonly']"
 
-
-    def add_input_entry(
+    def _add_input(
         self,
+        widget_type: str,
         key: str,
         text: str = None,
         width: int = 100,
-        state: str = "normal"
-    ) -> None:
+        state: str = None,
+        cbox_func_get_values : callable = lambda: [],
+        cbox_enable_empty_option: bool = False,
+        dt_format: str = "YYYY-MM-DD HH:mm:ss",
+        dt_default_now: bool = False,
+        decimals: int = 2,
+    ):
+        if state:
+            assert state in {
+                'normal',
+                'readonly',
+            }, "The state must be one of ['normal', 'readonly']"
+
+        self._set_label(text=text or key.replace("_", ' ').title())
+        if widget_type == "combobox":
+            variable = tk.StringVar()
+            widget = KeyValueCombobox(self, textvariable=variable, width=width, 
+                                      state=state or "readonly", func_get_values=cbox_func_get_values,
+                                      enable_empty_option=cbox_enable_empty_option)
+        elif widget_type == "datetime":
+            variable = DateTimeVar(format=dt_format)
+            widget = TimestampEntry(self, textvariable=variable, width=width, format=dt_format, default_now=dt_default_now)
+        elif widget_type == "decimal":
+            variable = DecimalVar(decimal=decimals)
+            widget = DecimalEntry(self, textvariable=variable, width=width, state=state or "normal", decimals=decimals)
+        elif widget_type == "entry":
+            variable = tk.StringVar()
+            widget = ttk.Entry(self, textvariable=variable, width=width, state=state or "normal")
+        elif widget_type == "label":
+            variable = tk.StringVar()
+            widget = ttk.Label(self, textvariable=variable, width=width)
+        self._set_widget(key=key, widget=widget, variable=variable)
+
+
+    def add_input_decimal(self, key: str, text: str = None, width: int = 100, state: str = "normal", decimals: int = 2) -> None:
+        """Add a decimal input to the view.
+            :param key: The key of the input.
+            :param text: The text to display.
+            :param width: The width of the input.
+            :param state: One of ['normal', 'readonly'].
+        """
+        self._add_input(widget_type='decimal', key=key, text=text, width=width, state=state, decimals=decimals)
+
+
+    def add_input_label(self, key: str, text: str = None, width: int = 100) -> None:
+        self._add_input(widget_type='label', key=key, text=text, width=width)
+    
+
+    def add_input_entry(self, key: str, text: str = None, width: int = 100, state: str = "normal") -> None:
         """Add an entry input to the view.
             :param key: The key of the input.
             :param text: The text to display.
             :param width: The width of the input.
             :param state: One of ['normal', 'readonly'].
         """
-        self._validate_state(state=state)
-        self._set_label(text=text or key.replace("_", ' ').title())
-        variable = tk.StringVar()
-        widget = ttk.Entry(self, textvariable=variable, width=width, state=state)
-        self._set_widget(key=key, widget=widget, variable=variable)
+        self._add_input(widget_type='entry', key=key, text=text, width=width, state=state)
 
 
     def add_input_combobox(
@@ -307,7 +345,7 @@ class FrameInput(ttk.Frame):
         text: str = None,
         width: int = 100,
         enable_empty_option: bool = False,
-        state="readonly"
+        state: str ="readonly"
     ) -> None:
         """
             Add a combobox input to the view.
@@ -320,26 +358,16 @@ class FrameInput(ttk.Frame):
                 enable_empty_option: If True it will add the option {None: '<Empty>'} at the begining.
                 state: One of ['normal', 'readonly'].
         """
-
-        self._validate_state(state=state)
-        self._set_label(text=text or key.replace("_", ' ').title())
-        variable = tk.StringVar()
-        widget = KeyValueCombobox(
-            self,
-            func_get_values=func_get_values,
-            enable_empty_option=enable_empty_option,
-            textvariable=variable,
-            width=width,
-            state=state
-        )
-        self._set_widget(key=key, widget=widget, variable=variable)
+        self._add_input(widget_type='combobox', key=key, text=text, width=width, 
+                        state=state, cbox_func_get_values=func_get_values,
+                        cbox_enable_empty_option=enable_empty_option)
 
 
     def add_input_datetime(
         self,
         key: str,
         text: str = None,
-        width: int = 100,
+        width: int = 20,
         format: str ="YYYY-MM-DD HH:mm:ss",
         default_now: bool = False,
         state: str = "normal"
@@ -355,18 +383,8 @@ class FrameInput(ttk.Frame):
                 default_now: If True it will set the default value to the current datetime.
                 state: One of ['normal', 'readonly'].
         """
-        
-        self._validate_state(state=state)
-        self._set_label(text=text or key.replace("_", ' ').title())
-        variable = DateTimeVar(format=format)
-        widget = TimestampEntry(
-            parent=self,
-            format=format,
-            default_now=default_now,
-            textvariable=variable,
-            width=width
-        )
-        self._set_widget(key=key, widget=widget, variable=variable)
+        self._add_input(widget_type='datetime', key=key, text=text, width=width,
+                        dt_format=format, dt_default_now=default_now, state=state)
 
 
 class TemplateNewEdit(CustomTopLevel, ABC):
