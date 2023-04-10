@@ -3,7 +3,7 @@ from database.models import AccountGroup, AccountGroup
 from database.common_queries import get_account_groups_values
 from tkinter import messagebox
 from custom.templates_view import TemplateNewEdit, FrameInput
-
+from views.config_views import VIEW_WIDGET_WIDTH
 import tkinter as tk
 
 
@@ -19,10 +19,10 @@ class AccountGroupNewView(TemplateNewEdit):
             func_get_values=get_account_groups_values,
             enable_empty_option=True,
             state="readonly",
-            width=30,
+            width=VIEW_WIDGET_WIDTH['ACCOUNT_GROUP_ALIAS'],
         )
-        input_frame.add_input_entry(key="name", width=30)
-        input_frame.add_input_entry(key="description", width=30)
+        input_frame.add_input_entry(key="name", width=VIEW_WIDGET_WIDTH['ACCOUNT_NAME'])
+        input_frame.add_input_entry(key="description", width=VIEW_WIDGET_WIDTH['DESCRIPTION'])
        
     def get_validated_values(self, input_values: dict) -> dict:
         if not input_values['name']:
@@ -59,6 +59,7 @@ class AccountGroupEditView(TemplateNewEdit):
             super().__init__(parent, title="Edit Account Group")
 
             self.input_frame.set_values({
+                "id": self.account_group.id,
                 "parent": self.account_group.parent.alias if self.account_group.parent else "<Empty>",
                 "name": self.account_group.name,
                 "description": self.account_group.description
@@ -86,15 +87,16 @@ class AccountGroupEditView(TemplateNewEdit):
         
             
     def set_inputs(self, input_frame: FrameInput):
+        input_frame.add_input_label(key="id", text='Id', width=VIEW_WIDGET_WIDTH['ID'])
         input_frame.add_input_combobox(
             key="parent",
             func_get_values=self.get_account_groups_values,
             enable_empty_option=True,
             state="readonly",
-            width=30,
+            width=VIEW_WIDGET_WIDTH['ACCOUNT_GROUP_ALIAS'],
         )
-        input_frame.add_input_entry(key="name", width=30)
-        input_frame.add_input_entry(key="description", width=30)
+        input_frame.add_input_entry(key="name", width=VIEW_WIDGET_WIDTH['ACCOUNT_NAME'])
+        input_frame.add_input_entry(key="description", width=VIEW_WIDGET_WIDTH['DESCRIPTION'])
 
     def get_validated_values(self, input_values: dict) -> dict:
         if not input_values['name']:

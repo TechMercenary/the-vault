@@ -4,6 +4,7 @@ from tkinter import messagebox
 from sqlalchemy import func
 from custom.custom_table import CustomTable
 from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 
 import tkinter as tk
 
@@ -24,6 +25,7 @@ class CurrencyChangeView(TemplateNewEdit):
             super().__init__(parent, title="Edit Currency") 
             
             self.input_frame.set_values({
+                "id": self.currency.id,
                 "code": self.currency.code,
                 "description": self.currency.description
             })
@@ -33,8 +35,10 @@ class CurrencyChangeView(TemplateNewEdit):
 
         
     def set_inputs(self, input_frame: FrameInput):
-        input_frame.add_input_entry(key="code", width=5)
-        input_frame.add_input_entry(key="description", width=30)
+        if getattr(self, 'currency', None):
+            input_frame.add_input_label(key="id", text='Id', width=VIEW_WIDGET_WIDTH['ID'])
+        input_frame.add_input_entry(key="code", width=VIEW_WIDGET_WIDTH['CURRENCY_CODE'])
+        input_frame.add_input_entry(key="description", width=VIEW_WIDGET_WIDTH['DESCRIPTION'])
     
     def get_validated_values(self, input_values: dict) -> dict:
         if not input_values["code"]:
@@ -82,9 +86,9 @@ class CurrencyListView(TemplateListView):
 
     def add_columns(self, table: CustomTable):
         """Set the columns of the table"""
-        table.add_column(column='id', dtype=int, anchor=tk.E, minwidth=50, width=50)
-        table.add_column(column='code', dtype=str, minwidth=75, width=75, is_sorted_asc=True)
-        table.add_column(column='description', dtype=str, anchor=tk.W, minwidth=10, width=200)
+        table.add_column(column='id', dtype=int, anchor=tk.E, width=TABLE_COLUMN_WIDTH['ID'])
+        table.add_column(column='code', dtype=str, width=TABLE_COLUMN_WIDTH['CURRENCY_CODE'], is_sorted_asc=True)
+        table.add_column(column='description', dtype=str, anchor=tk.W, width=TABLE_COLUMN_WIDTH['DESCRIPTION'])
 
 
 if __name__ == '__main__':

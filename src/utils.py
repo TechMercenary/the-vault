@@ -1,7 +1,7 @@
 import tkinter as tk
 import re
 from config import LOCAL_TIME_ZONE
-import pendulum
+import pendulum 
 
 
 def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
@@ -9,6 +9,19 @@ def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
     dt_to = dt_from.in_timezone(tz_to)
     return dt_to.to_datetime_string()
 
+def get_datetime_from_db(value: str) -> str:
+    return datetime_timezone_converter(
+        date_str=value,
+        tz_from='UTC',
+        tz_to=LOCAL_TIME_ZONE,
+    )
+    
+def get_datetime_to_db(value: str) -> str:
+    return datetime_timezone_converter(
+        date_str=value,
+        tz_from=LOCAL_TIME_ZONE,
+        tz_to='UTC',
+    )
 
 def test_toplevel_class(ToplevelClass: tk.Toplevel, *args, **kwargs):
     root = tk.Tk()

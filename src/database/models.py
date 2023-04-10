@@ -7,7 +7,7 @@ from decimal import Decimal
 # type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
 # str_30 = Annotated[str, 30]
 # num_6_2 = Annotated[Decimal, 6]
-
+# amount_18_2 = Annotated[Decimal, 1]
 
 class Base(DeclarativeBase):
     pass
@@ -80,15 +80,27 @@ class Account(Base):
     currency: Mapped["Currency"] = relationship("Currency")
     account_group: Mapped["AccountGroup"] = relationship(back_populates="accounts")
     account_type: Mapped["AccountType"] = relationship("AccountType", back_populates="accounts")
+    account_overdrafts: Mapped[list["AccountOverdraft"]] = relationship("AccountOverdraft", back_populates="account")
     
     @property
     def alias(self):
         return f"{self.account_group.alias}>{self.name}"
 
+    @property
+    def overdraft_limit(self):
+        return self.account_overdrafts[-1].limit if self.account_overdrafts else 0
+
+class AccountOverdraft(Base):
+    __tablename__ = "account_overdraft"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    limit: Mapped[Decimal]
+    started_at : Mapped[str]
+    ended_at : Mapped[str|None]
+    
+    account = relationship("Account", back_populates="account_overdrafts")
 
 
-# TODO: Implement model AccountOverdraft -- Replace AccountOverdraft with AccountLimitHistory  
-# TODO: Implement model TransactionGroup
 # TODO: Implement model Transaction
 # TODO: Implement model Employer
 # TODO: Implement model Salary
