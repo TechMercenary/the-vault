@@ -7,6 +7,7 @@ import tkinter as tk
 # import pathlib; 
 # PROJECT_PATH = pathlib.Path(__file__).parent
 
+# TODO: Change Float to Decimal everywhere
 class App(tk.Tk):
     """A financial accounting application."""
 

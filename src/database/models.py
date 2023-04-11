@@ -3,11 +3,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing_extensions import Annotated
 from decimal import Decimal
+from sqlalchemy.orm import foreign, remote
 
 # type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
 # str_30 = Annotated[str, 30]
 # num_6_2 = Annotated[Decimal, 6]
-# amount_18_2 = Annotated[Decimal, 1]
+# amount_18_2 = Annotated[Decimal, 18, 2]
 
 class Base(DeclarativeBase):
     pass
@@ -25,8 +26,6 @@ class Currency(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(3), nullable=False, unique=True)
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
-
-from sqlalchemy.orm import foreign, remote
 
 
 class AccountGroup(Base):
@@ -101,7 +100,29 @@ class AccountOverdraft(Base):
     account = relationship("Account", back_populates="account_overdrafts")
 
 
-# TODO: Implement model Transaction
+class Transaction(Base):
+    """
+       Transaction model 
+    """
+    __tablename__ = "transaction"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    timestamp: Mapped[str]
+    description: Mapped[str|None] = mapped_column(nullable=False, default="")
+    installment_number: Mapped[int|None] = mapped_column(nullable=False, default=1)
+    installment_total: Mapped[int|None] = mapped_column(nullable=False, default=1)
+    debit_reference: Mapped[str|None] = mapped_column(nullable=False, default="")
+    debit_account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    debit_amount: Mapped[Decimal]
+    credit_reference: Mapped[str|None] = mapped_column(nullable=False, default="")
+    credit_account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    credit_amount: Mapped[Decimal]
+    is_reconciled: Mapped[bool] = mapped_column(nullable=False, default=False)
+    
+    debit_account = relationship("Account", foreign_keys=[debit_account_id])
+    credit_account = relationship("Account", foreign_keys=[credit_account_id])
+    
+
+
 # TODO: Implement model Employer
 # TODO: Implement model Salary
 # TODO: Implement model CreditCard

@@ -4,7 +4,7 @@ from database.models import AccountGroup, Account
 from sqlalchemy import func
 from tkinter import messagebox
 from custom.custom_table import CustomTable
-from config_views import TABLE_COLUMN_WIDTH
+from views.config_views import TABLE_COLUMN_WIDTH
 from views.account_groups import AccountGroupEditView, AccountGroupNewView
 from views.accounts import AccountNewView, AccountEditView
 from custom.templates_view import CustomTopLevel

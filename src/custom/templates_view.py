@@ -13,12 +13,21 @@ from abc import ABC, abstractmethod
 class CustomTopLevel(tk.Toplevel, ABC):
     """ A custom toplevel window. 
     
+        Use `self.body_frame` to add additional widgets.
+    
         Features:
         
             - Autofocus on creation
             - Configurable top and footer buttons
             - Destoy on escape key
             - Body frame to add additional widgets
+
+            Args:
+                parent: The parent window
+                title: The title of the window
+                resizable: If the window is resizable
+                top_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
+                fotter_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
     """
 
     def __init__(
@@ -29,14 +38,6 @@ class CustomTopLevel(tk.Toplevel, ABC):
         top_buttons_config: dict = None,
         footer_buttons_config: dict = None,
     ):
-        """ 
-            Args:
-                parent: The parent window
-                title: The title of the window
-                resizable: If the window is resizable
-                top_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
-                fotter_buttons_config: A dictionary with the button's label as key, and the command (callable) as value
-        """
 
         super().__init__(parent)
         # Tkinter variables

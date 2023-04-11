@@ -6,6 +6,7 @@ from views.currencies import CurrencyListView
 from views.chart_of_accounts import ChartOfAccountView
 from views.providers import ProviderListView
 from views.account_type import AccountTypeListView
+from views.transaction import TransactionListView
 
 import tkinter as tk
 
@@ -116,7 +117,7 @@ class AppMenu(tk.Menu):
         tables_menu.add_cascade(label="Account Types", command=partial(AccountTypeListView, parent=self.parent))
         tables_menu.add_cascade(label="Providers", command=partial(ProviderListView, parent=self.parent))
         tables_menu.add_cascade(label="Currencies", command=partial(CurrencyListView, parent=self.parent))
-        tables_menu.add_cascade(label="Transactions", command=lambda: logger.debug("Selected Menu Transactinos"))
+        tables_menu.add_cascade(label="Transactions", command=partial(TransactionListView, parent=self.parent))
         tables_menu.add_cascade(label="Credit Cards", command=lambda: logger.debug("Selected Menu Credit Cards"))
         tables_menu.add_cascade(label="Credit Cards Summaries", command=lambda: logger.debug("Selected Menu Credit Cards Summaries"))
 
