@@ -3,12 +3,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing_extensions import Annotated
 from decimal import Decimal
-from config import Side, AccountType
+from sqlalchemy.orm import foreign, remote
 
 # type_timestamp = Annotated[datetime, mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),]
 # str_30 = Annotated[str, 30]
 # num_6_2 = Annotated[Decimal, 6]
-
+# amount_18_2 = Annotated[Decimal, 18, 2]
 
 class Base(DeclarativeBase):
     pass
@@ -27,8 +27,6 @@ class Currency(Base):
     code: Mapped[str] = mapped_column(String(3), nullable=False, unique=True)
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
 
-from sqlalchemy.orm import foreign, remote
-
 
 class AccountGroup(Base):
     __tablename__ = "account_group"
@@ -37,15 +35,27 @@ class AccountGroup(Base):
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
     parent_id : Mapped[int|None] = mapped_column(ForeignKey("account_group.id"))
 
-    parent: Mapped["AccountGroup"] = relationship(remote_side="AccountGroup.id", back_populates="children")
-    children: Mapped[list["AccountGroup"]] = relationship(back_populates="parent", order_by="func.lower(AccountGroup.name)")
-    accounts: Mapped[list["Account"]] = relationship(back_populates="account_group", order_by="func.lower(Account.name)")
+    parent: Mapped["AccountGroup"] = relationship("AccountGroup", remote_side="AccountGroup.id", back_populates="children")
+    children: Mapped[list["AccountGroup"]] = relationship("AccountGroup", back_populates="parent")
+    accounts: Mapped[list["Account"]] = relationship(back_populates="account_group")
 
     @property
     def alias(self):
         if self.parent_id is not None:
             return f"{self.parent.alias}>{self.name}"
         return self.name
+
+
+class AccountType(Base):
+    """
+        normal_side: The normal side of the account type. It must be either "DEBIT" or "CREDIT"
+    """
+    __tablename__ = "account_type"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    normal_side: Mapped[str] = mapped_column(nullable=False)
+    
+    accounts: Mapped[list["Account"]] = relationship(back_populates="account_type")
 
 
 class Account(Base):
@@ -64,15 +74,30 @@ class Account(Base):
     opened_at: Mapped[str]
     closed_at: Mapped[str|None]
     account_group_id: Mapped[int] = mapped_column(ForeignKey("account_group.id"))
-    account_type: Mapped[AccountType]
+    account_type_id: Mapped[int] = mapped_column(ForeignKey("account_type.id"))
     
     currency: Mapped["Currency"] = relationship("Currency")
     account_group: Mapped["AccountGroup"] = relationship(back_populates="accounts")
-    # account_group: Mapped["AccountGroup"] = relationship()
+    account_type: Mapped["AccountType"] = relationship("AccountType", back_populates="accounts")
+    account_overdrafts: Mapped[list["AccountOverdraft"]] = relationship("AccountOverdraft", back_populates="account")
     
     @property
     def alias(self):
         return f"{self.account_group.alias}>{self.name}"
+
+    @property
+    def overdraft_limit(self):
+        return self.account_overdrafts[-1].limit if self.account_overdrafts else 0
+
+class AccountOverdraft(Base):
+    __tablename__ = "account_overdraft"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
+    limit: Mapped[Decimal]
+    started_at : Mapped[str]
+    ended_at : Mapped[str|None]
+    
+    account = relationship("Account", back_populates="account_overdrafts")
 
 
 class Transaction(Base):
@@ -84,7 +109,7 @@ class Transaction(Base):
     timestamp: Mapped[str]
     description: Mapped[str|None] = mapped_column(nullable=False, default="")
     installment_number: Mapped[int|None] = mapped_column(nullable=False, default=1)
-    installment_total: Mapped[int|None] = mapped_column(nullable=False, default=1) # TODO: Enforce that this is always >= installment_number
+    installment_total: Mapped[int|None] = mapped_column(nullable=False, default=1)
     debit_reference: Mapped[str|None] = mapped_column(nullable=False, default="")
     debit_account_id: Mapped[int] = mapped_column(ForeignKey("account.id"))
     debit_amount: Mapped[Decimal]
@@ -98,7 +123,6 @@ class Transaction(Base):
     
 
 
-# TODO: (Later, used only for alerts) Implement model AccountOverdraft -- Replace AccountOverdraft with AccountLimitHistory  
 # TODO: Implement model Employer
 # TODO: Implement model Salary
 # TODO: Implement model CreditCard

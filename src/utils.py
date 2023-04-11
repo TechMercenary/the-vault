@@ -1,11 +1,7 @@
-import functools
 import tkinter as tk
 import re
-from tkinter import messagebox
-from config import logger, LOCAL_TIME_ZONE
-import pytz
-import datetime
-import pendulum
+from config import LOCAL_TIME_ZONE
+import pendulum 
 
 
 def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
@@ -13,6 +9,19 @@ def datetime_timezone_converter(date_str: str, tz_from: str, tz_to: str) -> str:
     dt_to = dt_from.in_timezone(tz_to)
     return dt_to.to_datetime_string()
 
+def get_datetime_from_db(value: str) -> str:
+    return datetime_timezone_converter(
+        date_str=value,
+        tz_from='UTC',
+        tz_to=LOCAL_TIME_ZONE,
+    )
+    
+def get_datetime_to_db(value: str) -> str:
+    return datetime_timezone_converter(
+        date_str=value,
+        tz_from=LOCAL_TIME_ZONE,
+        tz_to='UTC',
+    )
 
 def test_toplevel_class(ToplevelClass: tk.Toplevel, *args, **kwargs):
     root = tk.Tk()
@@ -85,16 +94,5 @@ def center_window(window: tk.Toplevel | tk.Tk, context_window=None) -> None:
     offset_y = int(parent_geometry['offset_y'] + parent_geometry['height']//2 - window_geometry['height']//2)
     
     set_geometry(window, offset_x=offset_x, offset_y=offset_y)
-
-
-if __name__ == '__main__':
-    date_str = '2021-01-01 23:59:59'
-    print('date_str', date_str)
-    
-    tz_from = LOCAL_TIME_ZONE
-    tz_to='UTC'
-    
-    pendulum.from_format(date_str, format, tz=tz_from).in_timezone(tz_to).to_datetime_string()
-
 
     
