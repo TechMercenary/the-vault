@@ -3,12 +3,12 @@ from database.models import Provider
 from tkinter import messagebox
 from sqlalchemy import func
 from custom.custom_table import CustomTable
-from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateListView, TemplateChange, FrameInput
 from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 import tkinter as tk
 
 
-class ProviderChangeView(TemplateNewEdit):
+class ProviderChangeView(TemplateChange):
     """A view for creating and editing a provider."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, provider_id: int = None):

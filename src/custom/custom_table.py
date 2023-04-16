@@ -1,6 +1,7 @@
 from functools import partial
 import tkinter as tk
 import tkinter.ttk as ttk
+from decimal import Decimal
 
 
 class CustomTable(tk.Frame):
@@ -81,7 +82,7 @@ class CustomTable(tk.Frame):
     def add_column(self,
                    column: str,
                    text: str = None,
-                   dtype: int|str|float = str,
+                   dtype: int|str|float|Decimal = str,
                    anchor: str = tk.CENTER,
                    minwidth: int = 20,
                    width: int = 200,
@@ -93,7 +94,7 @@ class CustomTable(tk.Frame):
         Args:
             column (str): The internal name of the column. This is the key of the dictionary in the `data` argument.
             text (str, optional): The display text to be shown in the heading. Defaults to the "Title Case" of the `column` parameter.
-            dtype (int|str|float, optional): The data type of the column. Defaults to str. It is used to sort the column.
+            dtype (int|str|float|Decimal, optional): The data type of the column. Defaults to str. It is used to sort the column.
             anchor (str, optional): The aligment of the values in the column. Defaults to tk.CENTER.
                 - tk.W: Left
                 - tk.CENTER: Center
@@ -144,7 +145,7 @@ class CustomTable(tk.Frame):
                 self._col_config[column]['is_sorted_asc'] = not sort_descending
 
         # Sort the data
-        def get_sort_key(item, dtype: str | int | float) -> str | int | float:
+        def get_sort_key(item, dtype: str | int | float | Decimal) -> str | int | float | Decimal:
             value, _ = item
             return dtype(value).lower() if isinstance(dtype, str) else dtype(value)
 
@@ -188,7 +189,7 @@ class CustomTable(tk.Frame):
         for item in self._func_get_data():
             values = tuple(item[column] for column in self.get_columns())
             self._table.insert('', 'end', values=values)
-            
+
 
     def refresh(self, event=None) -> None:
         """
@@ -201,9 +202,9 @@ class CustomTable(tk.Frame):
         if self._tree_expanded:
             self._expand_items()
 
-    def get_items_data(self, selected_only: bool = False) -> list[dict[str: str|int|float]]:
+    def get_items_data(self, selected_only: bool = False) -> list[dict[str: str|int|float|Decimal]]:
         """Return the selected items."""
-        
+
         columns = self.get_columns()
         data = []
         for item_id in self._table.selection() if selected_only else self._table.get_children():
@@ -214,11 +215,8 @@ class CustomTable(tk.Frame):
                 # `len(item_values)` It is used over `len(columns)` because the item's values may be less than the columns, but never greater
                 columns[index]: item_values[index] for index in range(len(item_values))
             }
-            
+
             # Add the items's data to the list
             data.append(item_data)
 
         return data
-
-
-    

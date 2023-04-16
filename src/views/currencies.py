@@ -3,13 +3,13 @@ from database.models import Currency
 from tkinter import messagebox
 from sqlalchemy import func
 from custom.custom_table import CustomTable
-from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateListView, TemplateChange, FrameInput
 from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 
 import tkinter as tk
 
 
-class CurrencyChangeView(TemplateNewEdit):
+class CurrencyChangeView(TemplateChange):
     """A view for creating and editing a currency."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, currency_id: int=None):

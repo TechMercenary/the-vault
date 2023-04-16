@@ -3,13 +3,13 @@ from database.models import AccountType
 from tkinter import messagebox
 from sqlalchemy import func
 from custom.custom_table import CustomTable
-from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateListView, TemplateChange, FrameInput
 from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 
 import tkinter as tk
 
 
-class AccountTypeChangeView(TemplateNewEdit):
+class AccountTypeChangeView(TemplateChange):
     """A view for editing a account type."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, account_type_id: int = None):

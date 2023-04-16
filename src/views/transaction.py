@@ -5,7 +5,7 @@ from database.models import Account, Transaction
 from tkinter import messagebox
 from custom.custom_table import CustomTable
 from custom.templates_view import TemplateListView, CustomTopLevel
-from custom.custom_widgets import TimestampEntry
+from custom.custom_widgets import PendulumEntry
 from custom.custom_variables import PendulumVar
 from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 from decimal import Decimal
@@ -83,7 +83,7 @@ class TransactionChangeTemplate(CustomTopLevel):
         
         # Timestamp
         ttk.Label(heading_frame, text="Timestamp").grid(row=1, column=0, sticky="w", padx=(15,10), pady=(10,5))
-        TimestampEntry(heading_frame, textvariable=self.variables_input["timestamp"], default_now=True, width=VIEW_WIDGET_WIDTH['TIMESTAMP']) \
+        PendulumEntry(heading_frame, textvariable=self.variables_input["timestamp"], default_now=True, width=VIEW_WIDGET_WIDTH['TIMESTAMP']) \
             .grid(row=1, column=1, sticky="w", pady=(10,5))
         
         # Description

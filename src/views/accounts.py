@@ -2,7 +2,7 @@ from utils import center_window, get_datetime_from_db, get_datetime_to_db
 from database.sqlite_handler import get_session
 from database.models import Account, AccountType
 from tkinter import messagebox
-from custom.templates_view import TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateChange, FrameInput
 from database.common_queries import \
     get_account_groups_values, \
     get_account_types_values, \
@@ -29,7 +29,7 @@ def _get_values_for_db(input_values: dict) -> dict:
         }
 
 
-class AccountNewView(TemplateNewEdit):
+class AccountNewView(TemplateChange):
     """A view for creating a new account."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk,):
@@ -69,8 +69,8 @@ class AccountNewView(TemplateNewEdit):
             state="readonly",
             width=10,
         )
-        input_frame.add_input_datetime(key="opened_at", default_now=True)
-        input_frame.add_input_datetime(key="closed_at", default_now=False)
+        input_frame.add_input_pendulum(key="opened_at", default_now=True)
+        input_frame.add_input_pendulum(key="closed_at", default_now=False)
         input_frame.add_input_combobox(
             key="account_type",
             func_get_values=get_account_types_values,
@@ -97,7 +97,7 @@ class AccountNewView(TemplateNewEdit):
             session.commit()
 
 
-class AccountEditView(TemplateNewEdit):
+class AccountEditView(TemplateChange):
     """A view for editing an account."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, account_id: int):
@@ -163,8 +163,8 @@ class AccountEditView(TemplateNewEdit):
             state="readonly",
             width=30,
         )
-        input_frame.add_input_datetime(key="opened_at")
-        input_frame.add_input_datetime(key="closed_at")
+        input_frame.add_input_pendulum(key="opened_at")
+        input_frame.add_input_pendulum(key="closed_at")
         input_frame.add_input_combobox(
             key="account_type",
             func_get_values=get_account_types_values,

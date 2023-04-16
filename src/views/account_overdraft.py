@@ -1,27 +1,29 @@
+from abc import abstractmethod
 from database.sqlite_handler import get_session
 from database.models import AccountOverdraft
 from tkinter import messagebox
 from custom.custom_table import CustomTable
-from custom.templates_view import TemplateListView, TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateListView, TemplateChange, FrameInput
 from database.common_queries import get_accounts_values
 from utils import get_datetime_from_db, get_datetime_to_db
 from views.config_views import VIEW_WIDGET_WIDTH, TABLE_COLUMN_WIDTH
 import tkinter as tk
 
 
-class AccountOverdraftNewView(TemplateNewEdit):
-    """A view for creating a new account overdraft."""
-
-    def __init__(self, parent: tk.Toplevel | tk.Tk) -> None:
-        super().__init__(parent, title="New Account Overdraft")
-
+class AccountOverdraftChangeView(TemplateChange):
+    def __init__(self, parent: tk.Toplevel | tk.Tk, title: str, account_overdraft_id: int = None) -> None:
+        super().__init__(parent, title=title)
+        self.account_overdraft_id = account_overdraft_id
 
     def set_inputs(self, input_frame: FrameInput):
+        if self.account_overdraft_id:
+            input_frame.add_input_label(key="id", text="Id", width=VIEW_WIDGET_WIDTH['ID'])
         input_frame.add_input_combobox(key="account", func_get_values=get_accounts_values, width=VIEW_WIDGET_WIDTH['ACCOUNT_ALIAS'])
         input_frame.add_input_decimal(key="limit", text="Limit ($)", width=VIEW_WIDGET_WIDTH['OVERDRAFT_LIMIT'])
-        input_frame.add_input_datetime(key="started_at", default_now=True)
-
-
+        input_frame.add_input_pendulum(key="started_at", default_now=True)
+        if self.account_overdraft_id:
+            input_frame.add_input_pendulum(key="ended_at")
+        
     def get_validated_values(self, input_values: dict) -> dict:
         if not input_values["limit"] or float(input_values["limit"]) <= 0:
             raise ValueError("Limit must be greater than 0")
@@ -29,15 +31,28 @@ class AccountOverdraftNewView(TemplateNewEdit):
         if not input_values["started_at"]:
             raise ValueError("Started At must be set")
 
+        if input_values["ended_at"] and input_values["ended_at"] < input_values["started_at"]:
+            raise ValueError("Ended At must be greater than Started At")
+
         return {
             "account_id": input_values["account"]["key"],
             "limit": input_values["limit"],
-            "started_at": get_datetime_to_db(str(input_values['started_at']))
+            "started_at": get_datetime_to_db(str(input_values['started_at'])),
+            "ended_at": get_datetime_to_db(str(input_values['ended_at'])) if input_values['ended_at'] else None,
         }
 
+    @abstractmethod
+    def on_accept(self, event=None) -> None:
+        raise NotImplementedError
+
+
+class AccountOverdraftNewView(AccountOverdraftChangeView):
+    """A view for creating a new account overdraft."""
+
+    def __init__(self, parent: tk.Toplevel | tk.Tk) -> None:
+        super().__init__(parent, title="New Account Overdraft")
 
     def on_accept(self, values: list[dict]):
-
         with get_session() as session:
             session.add(AccountOverdraft(
                     account_id=values['account_id'],
@@ -47,10 +62,11 @@ class AccountOverdraftNewView(TemplateNewEdit):
             session.commit()
 
 
-class AccountOverdraftEditView(TemplateNewEdit):
+class AccountOverdraftEditView(AccountOverdraftChangeView):
     """A view for creating and editing an account overdraft."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, account_overdraft_id: int=None):
+        super().__init__(parent, title="Edit Account Overdraft")
         
         with get_session() as session:
             if not (account_overdraft:=session.query(AccountOverdraft).filter(AccountOverdraft.id == account_overdraft_id).first()):
@@ -59,8 +75,6 @@ class AccountOverdraftEditView(TemplateNewEdit):
                 self.destroy()
             self.account_overdraft = account_overdraft
 
-            super().__init__(parent, title="Edit Account Overdraft")
-            
             self.input_frame.set_values({
                 "id": self.account_overdraft.id,
                 "account": self.account_overdraft.account.alias,
@@ -69,31 +83,6 @@ class AccountOverdraftEditView(TemplateNewEdit):
                 "ended_at": get_datetime_from_db(str(self.account_overdraft.ended_at)) if self.account_overdraft.ended_at else '',
             })
 
-        
-    def set_inputs(self, input_frame: FrameInput):
-        input_frame.add_input_label(key="id", text='Id', width=VIEW_WIDGET_WIDTH['ID'])
-        input_frame.add_input_combobox(key="account", func_get_values=get_accounts_values, width=VIEW_WIDGET_WIDTH['ACCOUNT_ALIAS'])
-        input_frame.add_input_decimal(key="limit", text="Limit ($)", width=VIEW_WIDGET_WIDTH['OVERDRAFT_LIMIT'])
-        input_frame.add_input_datetime(key="started_at")
-        input_frame.add_input_datetime(key="ended_at")
-
-    
-    def get_validated_values(self, input_values: dict) -> dict:
-        if not input_values["limit"] or float(input_values["limit"]) <= 0:
-            raise ValueError("Limit must be greater than 0")
-        
-        if not input_values["started_at"]:
-            raise ValueError("Started At must be set")
-        
-        if input_values["ended_at"] and input_values["ended_at"] < input_values["started_at"]:
-            raise ValueError("Ended At must be greater than Started At")
-        
-        return {
-            "account_id": input_values["account"]["key"],
-            "limit": input_values["limit"],
-            "started_at": get_datetime_to_db(str(input_values['started_at'])),
-            "ended_at": get_datetime_to_db(str(input_values['ended_at'])) if input_values['ended_at'] else None,
-        }
 
     def on_accept(self, values: list[dict]):
         with get_session() as session:

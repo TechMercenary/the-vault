@@ -4,10 +4,12 @@ from tkinter import messagebox
 from custom.custom_table import CustomTable
 from config import logger
 from database.models import Base
-from custom.custom_widgets import TimestampEntry, KeyValueCombobox, DecimalEntry
-from custom.custom_variables import DateTimeVar, DecimalVar
+from custom.custom_widgets import PendulumEntry, KeyValueCombobox, DecimalEntry
+from custom.custom_variables import PendulumVar, DecimalVar
 import tkinter as tk
 import tkinter.ttk as ttk
+import pendulum
+from decimal import Decimal
 from abc import ABC, abstractmethod
 
 class CustomTopLevel(tk.Toplevel, ABC):
@@ -202,193 +204,82 @@ class TemplateListView(CustomTopLevel, ABC):
 class FrameInput(ttk.Frame):
     """ A custom frame to easily create input forms."""
     
-    def __init__(self, parent, padding=5, *args, **kwargs ) -> None:
+    def __init__(self, parent, padding=5, *args, **kwargs) -> None:
         super().__init__(parent, padding=padding, *args, **kwargs)
 
         self._input_variables = {}
         self._input_widgets = {}
         self._input_rows = 0
 
-    def set_values(self, values: dict[str: str|int|float] = None) -> None:
+    def set_values(self, values: dict[str: str|int|Decimal] = None) -> None:
         """ Set the values of the input widgets using a dictionary."""
+
+        if unset_keys := [key for key in values if key not in self._input_variables.keys()]:
+            messagebox.showerror("Error", f"Keys [{', '.join(unset_keys)}] not found in the input variables.")
+            self.parent.focus()
+            self.destroy()
+            return None
+
         for key, value in values.items():
-            if key in self._input_variables.keys():
-                self._input_variables[key].set(value)
-            else:
-                messagebox.showerror("Error", f'Key {key} not found in the input variables.')
-                self.parent.focus()
-                self.destroy()
-
-    def get_input_widgets(self) -> list[dict[str: tk.Widget]]:
-        """
-            Get the input widgets. 
-            Returns a list of dictionaries with the key and the widget.
-        """
-        return [{key: self._input_widgets[key] for key in self._input_widgets.keys()}]
-
-    def set_binding(self, key: str, bindings: dict) -> None:
-        """Set bindings to the input widget.
-            :key: The key of the input.
-            :bindings: A dictionary with the bindings. {'event': function}
-        """
-        for event, func in bindings.items():
-            self._input_widgets[key].bind(event, func)
-       
-    def _set_widget(self, key: str, widget: tk.Widget, variable: tk.StringVar) -> None:
-        """Set the widget and the variable to the input widgets and variables dictionaries."""
-        
-        widget.grid(column=1, row=self._get_inputs_qty(), sticky="w")
-        self._input_widgets[key] = widget
-        self._input_variables[key] = variable
-        
-    
-    def _get_inputs_qty(self) -> int:
-        """ Get the amount of inputs."""
-        return len(self._input_variables)
+            self._input_variables[key].set(value)
 
 
-    def _set_label(self, text: str) -> None:
-        """ 
-            Create a ttk.Label 
-            
-            :param text: The text of the label.
-        """
-        ttk.Label(self, text=text).grid(column=0, row=self._get_inputs_qty(), padx=5, pady=3, sticky="w")
+    def set_bind(self, key: str, event: str, func: callable) -> None:
+        self._input_widgets[key].bind(event, func)
 
     def get_values(self) -> list[dict[str: str|int|float|bool]]:
-        """ 
-            Get a dictionary with the values of the input widgets.
-            
-            For each key in the input widgets dictionary it will return the value of the `variable` associated with the widget.
-                In case the widget is a `KeyValueCombobox` it will return the value of the widget itself,
-                because it is not a simple string but a dictionary.
-        """
-        
-        values = {}
-        for key in self._input_variables.keys():
-            value = None
-            if isinstance(self._input_widgets[key], KeyValueCombobox):
-                value = self._input_widgets[key].get()
-            else:
-                value = self._input_variables[key].get()
-            values[key] = value
-        return values
+        return {
+            key: self._input_variables[key].get()
+            for key in self._input_variables.keys()
+        }
 
 
-    def _add_input(
-        self,
-        widget_type: str,
-        key: str,
-        text: str = None,
-        width: int = 100,
-        state: str = None,
-        cbox_func_get_values : callable = lambda: [],
-        cbox_enable_empty_option: bool = False,
-        dt_format: str = "YYYY-MM-DD HH:mm:ss",
-        dt_default_now: bool = False,
-        decimals: int = 2,
-    ):
-        if state:
-            assert state in {
-                'normal',
-                'readonly',
-            }, "The state must be one of ['normal', 'readonly']"
+    def _add_input(self, key: str, widget: tk.Entry, text: str = None):
+        ttk.Label(self, text=text or key.replace("_", ' ').title()) \
+            .grid(column=0, row=len(self._input_variables), padx=5, pady=3, sticky="w")
+        variable = tk.StringVar()
+        widget.option_add('textvariable', variable)
+        widget.grid(column=1, row=len(self._input_variables), sticky="w")
+        self._input_widgets[key] = widget
+        self._input_variables[key] = variable
 
-        self._set_label(text=text or key.replace("_", ' ').title())
-        if widget_type == "combobox":
-            variable = tk.StringVar()
-            widget = KeyValueCombobox(self, textvariable=variable, width=width, 
-                                      state=state or "readonly", func_get_values=cbox_func_get_values,
-                                      enable_empty_option=cbox_enable_empty_option)
-        elif widget_type == "datetime":
-            variable = DateTimeVar(format=dt_format)
-            widget = TimestampEntry(self, textvariable=variable, width=width, format=dt_format, default_now=dt_default_now)
-        elif widget_type == "decimal":
-            variable = DecimalVar(decimal=decimals)
-            widget = DecimalEntry(self, textvariable=variable, width=width, state=state or "normal", decimals=decimals)
-        elif widget_type == "entry":
-            variable = tk.StringVar()
-            widget = ttk.Entry(self, textvariable=variable, width=width, state=state or "normal")
-        elif widget_type == "label":
-            variable = tk.StringVar()
-            widget = ttk.Label(self, textvariable=variable, width=width)
-        self._set_widget(key=key, widget=widget, variable=variable)
+    def add_input_decimal(self, key: str, text: str = None, width: int = None, state: str = None, format: str = None, value: Decimal|str = None) -> None:
+        self._add_input(
+            key=key,
+            widget=DecimalEntry(self, width=width, state=state or "normal", format=format or '0.01', value=value),
+            text=text,
+        )
 
-
-    def add_input_decimal(self, key: str, text: str = None, width: int = 100, state: str = "normal", decimals: int = 2) -> None:
-        """Add a decimal input to the view.
-            :param key: The key of the input.
-            :param text: The text to display.
-            :param width: The width of the input.
-            :param state: One of ['normal', 'readonly'].
-        """
-        self._add_input(widget_type='decimal', key=key, text=text, width=width, state=state, decimals=decimals)
-
-
-    def add_input_label(self, key: str, text: str = None, width: int = 100) -> None:
-        self._add_input(widget_type='label', key=key, text=text, width=width)
+    def add_input_label(self, key: str, text: str = None, width: int = 100, value=None) -> None:
+        self._add_input(
+            key=key,
+            widget=ttk.Label(self, width=width, value=value),
+            text=text
+        )
     
+    def add_input_entry(self, key: str, text: str = None, width: int = 100, state: str = "normal", value=None) -> None:
+        self._add_input(
+            key=key,
+            widget=ttk.Entry(self, width=width, state=state or "normal", value=value),
+            text=text
+        )
 
-    def add_input_entry(self, key: str, text: str = None, width: int = 100, state: str = "normal") -> None:
-        """Add an entry input to the view.
-            :param key: The key of the input.
-            :param text: The text to display.
-            :param width: The width of the input.
-            :param state: One of ['normal', 'readonly'].
-        """
-        self._add_input(widget_type='entry', key=key, text=text, width=width, state=state)
+    def add_input_combobox(self, key: str, values: list|tuple, text: str = None, width: int = 100, state: str ="readonly") -> None:
+        self._add_input(
+            key=key,
+            widget=ttk.Combobox(self, width=width, state=state, values=values),
+            text=text
+        )
 
-
-    def add_input_combobox(
-        self,
-        key: str,
-        func_get_values: callable,
-        text: str = None,
-        width: int = 100,
-        enable_empty_option: bool = False,
-        state: str ="readonly"
-    ) -> None:
-        """
-            Add a combobox input to the view.
-            args:
-                key: The key of the input.
-                func_get_values: A function to get the values of the combobox. 
-                    It must return a dictionary where the key is the `id` in the database.
-                text: The text to display.
-                width: The width of the input.
-                enable_empty_option: If True it will add the option {None: '<Empty>'} at the begining.
-                state: One of ['normal', 'readonly'].
-        """
-        self._add_input(widget_type='combobox', key=key, text=text, width=width, 
-                        state=state, cbox_func_get_values=func_get_values,
-                        cbox_enable_empty_option=enable_empty_option)
+    def add_input_pendulum(self, key: str, text: str = None, width: int = 20, format: str ="YYYY-MM-DD HH:mm:ss", value=None) -> None:
+        self._add_input(
+            key=key,
+            widget=PendulumEntry(self, width=width, format=format, value=value),
+            text=text
+        )
 
 
-    def add_input_datetime(
-        self,
-        key: str,
-        text: str = None,
-        width: int = 20,
-        format: str ="YYYY-MM-DD HH:mm:ss",
-        default_now: bool = False,
-        state: str = "normal"
-    ) -> None:
-        """ 
-            Add a datetime input to the view.
-            
-            args:
-                key: The key of the input.
-                text: The text to display.
-                width: The width of the input.
-                format: The format of the datetime. Used to validate and extract the data as `str`.
-                default_now: If True it will set the default value to the current datetime.
-                state: One of ['normal', 'readonly'].
-        """
-        self._add_input(widget_type='datetime', key=key, text=text, width=width,
-                        dt_format=format, dt_default_now=default_now, state=state)
-
-
-class TemplateNewEdit(CustomTopLevel, ABC):
+class TemplateChange(CustomTopLevel, ABC):
     """
         Template for the new and edit windows.
 
@@ -457,8 +348,7 @@ class TemplateNewEdit(CustomTopLevel, ABC):
             - It generates the event "<<EventUpdateTable>>" used by TemplateListView to update the table.
         """
         try:
-            values = self.get_validated_values(input_values=self.input_frame.get_values())
-            self.on_accept(values=values)
+            self.on_accept(values=self.get_validated_values(input_values=self.input_frame.get_values()))
             self.parent.event_generate("<<EventUpdateTable>>")
             self.parent.focus()
             self.destroy()

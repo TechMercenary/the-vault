@@ -2,12 +2,12 @@ from database.sqlite_handler import get_session
 from database.models import AccountGroup, AccountGroup
 from database.common_queries import get_account_groups_values
 from tkinter import messagebox
-from custom.templates_view import TemplateNewEdit, FrameInput
+from custom.templates_view import TemplateChange, FrameInput
 from views.config_views import VIEW_WIDGET_WIDTH
 import tkinter as tk
 
 
-class AccountGroupNewView(TemplateNewEdit):
+class AccountGroupNewView(TemplateChange):
     """A view for creating a new account group"""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk):
@@ -43,7 +43,7 @@ class AccountGroupNewView(TemplateNewEdit):
             session.commit()
 
     
-class AccountGroupEditView(TemplateNewEdit):
+class AccountGroupEditView(TemplateChange):
     """A view for editing an account group."""
 
     def __init__(self, parent: tk.Toplevel | tk.Tk, account_group_id: int):
@@ -120,5 +120,6 @@ class AccountGroupEditView(TemplateNewEdit):
 
 if __name__ == '__main__':
     from utils import test_toplevel_class
-    test_toplevel_class(AccountGroupEditView, account_group_id=4)
+    # test_toplevel_class(AccountGroupEditView, account_group_id=4)
+    test_toplevel_class(AccountGroupNewView)
 
